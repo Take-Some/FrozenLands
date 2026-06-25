@@ -1,13 +1,11 @@
 package org.takesome.frozenlands.engine.core;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.takesome.frozenlands.engine.EngineContext;
 import org.takesome.frozenlands.engine.lua.LuaProviderBridge;
+import org.takesome.frozenlands.engine.core.console.CoreConsole;
 import org.takesome.frozenlands.engine.modules.EngineModule;
 import org.takesome.frozenlands.engine.modules.ModuleCommand;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -19,12 +17,13 @@ public final class CoreModule implements EngineModule {
 
     private final EngineContext context;
     private final ScriptRuntime scripts;
+    private final CoreConsole console;
     private final Map<String, ModuleCommand> commands = new LinkedHashMap<>();
-    private final ObjectMapper mapper = new ObjectMapper();
 
     public CoreModule(EngineContext context) {
         this.context = context;
         this.scripts = new ScriptRuntime(context);
+        this.console = new CoreConsole(context);
         registerCommands();
     }
 
@@ -67,7 +66,11 @@ public final class CoreModule implements EngineModule {
         commands.put("script.read", ModuleCommand.of("script.read", "Read one indexed Lua script", scripts::read));
         commands.put("script.run", ModuleCommand.of("script.run", "Execute one indexed Lua script through the core bridge", this::runScript));
         commands.put("script.autorun", ModuleCommand.of("script.autorun", "Execute configured Lua autorun scripts", args -> result("results", runConfiguredAutoRunScripts())));
-        commands.put("console.execute", ModuleCommand.of("console.execute", "Execute a console command line", this::executeConsole));
+        commands.put("console.execute", ModuleCommand.of("console.execute", "Execute a slash-prefixed console command line", this::executeConsole));
+        commands.put("console.help", ModuleCommand.of("console.help", "Return core-owned console help", this::consoleHelp));
+        commands.put("console.version", ModuleCommand.of("console.version", "Return core-owned console version", args -> console.version()));
+        commands.put("console.commandsList", ModuleCommand.of("console.commandsList", "Return base and dynamic console commands", args -> console.commandsList()));
+        commands.put("console.complete", ModuleCommand.of("console.complete", "Autocomplete console command names", this::consoleComplete));
     }
 
     private Map<String, Object> status() {
@@ -113,29 +116,15 @@ public final class CoreModule implements EngineModule {
     }
 
     private Map<String, Object> executeConsole(Map<String, Object> args) {
-        String line = stringArg(args, "line", "").trim();
-        if (line.isBlank()) {
-            return error("empty-console-line");
-        }
-        String[] parts = line.split("\\s+", 3);
-        if (parts.length < 2) {
-            return error("console-line-must-be: <moduleId> <commandId> [jsonArgs]");
-        }
-        Map<String, Object> parsedArgs = parts.length == 3 ? parseJsonArgs(parts[2]) : Map.of();
-        Map<String, Object> response = context.getModuleRegistry().call(parts[0], parts[1], parsedArgs);
-        context.getModuleRegistry().publishEvent("core.console.executed", Map.of("line", line, "module", parts[0], "command", parts[1]));
-        return response;
+        return console.execute(stringArg(args, "line", ""));
     }
 
-    private Map<String, Object> parseJsonArgs(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return Map.of();
-        }
-        try {
-            return mapper.readValue(raw, new TypeReference<LinkedHashMap<String, Object>>() { });
-        } catch (IOException e) {
-            throw new IllegalArgumentException("Console JSON arguments are invalid: " + raw, e);
-        }
+    private Map<String, Object> consoleHelp(Map<String, Object> args) {
+        return console.help(stringArg(args, "command", ""));
+    }
+
+    private Map<String, Object> consoleComplete(Map<String, Object> args) {
+        return console.complete(stringArg(args, "prefix", ""));
     }
 
     private LuaProviderBridge bridge() {

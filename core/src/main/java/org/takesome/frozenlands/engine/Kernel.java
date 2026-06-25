@@ -11,30 +11,21 @@ import com.jme3.renderer.Camera;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import org.takesome.frozenlands.FrozenLands;
-import org.takesome.frozenlands.engine.bootstrap.WorldBootstrap;
 import org.takesome.frozenlands.engine.core.CoreModule;
-import org.takesome.frozenlands.engine.icons.IcoParserModule;
 import org.takesome.frozenlands.engine.lua.RuntimeManifestReporter;
-import org.takesome.frozenlands.engine.modules.EngineModule;
 import org.takesome.frozenlands.engine.modules.ModuleRegistry;
 import org.takesome.frozenlands.engine.player.Player;
-import org.takesome.frozenlands.engine.player.PlayerModule;
 import org.takesome.frozenlands.engine.providers.EngineProviders;
 import org.takesome.frozenlands.engine.providers.ProviderRegistry;
 import org.takesome.frozenlands.engine.providers.material.MaterialProvider;
 import org.takesome.frozenlands.engine.providers.model.ModelProvider;
 import org.takesome.frozenlands.engine.providers.sound.SoundProvider;
 import org.takesome.frozenlands.engine.save.SaveManager;
-import org.takesome.frozenlands.engine.save.SaveModule;
-import org.takesome.frozenlands.engine.shaders.ShaderModule;
 import org.takesome.frozenlands.engine.shaders.Shaders;
-import org.takesome.frozenlands.engine.world.WorldModule;
 import org.takesome.frozenlands.engine.world.WorldUpdate;
-import org.takesome.frozenlands.engine.world.effect.ParticleModule;
 import org.takesome.frozenlands.engine.world.sky.Sky;
 import org.takesome.frozenlands.engine.world.spawn.SpawnManager;
 import org.takesome.frozenlands.engine.world.terrain.TerrainManager;
-import org.takesome.frozenlands.engine.world.terrain.TerrainModule;
 import org.slf4j.Logger;
 
 import java.util.List;
@@ -46,15 +37,6 @@ public class Kernel extends BaseAppState implements EngineContext {
     private final Logger logger;
     private final Map CONFIG;
 
-    protected final AssetManager assetManager;
-    protected final ViewPort viewPort;
-    protected final AppStateManager stateManager;
-    protected final Camera camera;
-    protected final BulletAppState bulletAppState;
-    protected final Node rootNode;
-    protected final Node guiNode;
-    protected final FilterPostProcessor fpp;
-    protected final InputManager inputManager;
 
     private final EngineProviders providers;
     private final ProviderRegistry providerRegistry;
@@ -70,50 +52,36 @@ public class Kernel extends BaseAppState implements EngineContext {
     private final WorldUpdate worldUpdate;
     private final SpawnManager spawnManager;
     private final SaveManager saveManager;
-    protected Player player;
+    private Player player;
 
     public Kernel(FrozenLands frozenLands) {
         this.frozenLands = frozenLands;
-        this.stateManager = frozenLands.getStateManager();
-        this.assetManager = frozenLands.getAssetManager();
-        this.inputManager = frozenLands.getInputManager();
-        this.camera = frozenLands.getCamera();
-        this.rootNode = frozenLands.getRootNode();
-        this.viewPort = frozenLands.getViewPort();
-        this.bulletAppState = frozenLands.getBulletAppState();
-        this.fpp = frozenLands.getFpp();
         this.CONFIG = frozenLands.getCONFIG();
         this.logger = frozenLands.getLogger();
-        this.guiNode = frozenLands.getGuiNode();
-
         this.providerRegistry = new ProviderRegistry();
         this.moduleRegistry = new ModuleRegistry();
         this.coreModule = new CoreModule(this);
-        this.moduleRegistry.register(coreModule, this);
 
-        this.providers = EngineProviders.bootstrap(this, providerRegistry);
-        this.soundProvider = providers.getSoundProvider();
-        this.materialProvider = providers.getMaterialProvider();
-        this.modelProvider = providers.getModelProvider();
-        this.moduleRegistry.register(EngineModule.descriptor("engine.providers", "Provider registry exposed to Lua bridge"), this);
+        KernelProviderBootstrap.KernelProviderRuntime providerRuntime = new KernelProviderBootstrap(
+                this,
+                providerRegistry,
+                moduleRegistry,
+                coreModule
+        ).boot();
+        this.providers = providerRuntime.providers();
+        this.soundProvider = providerRuntime.soundProvider();
+        this.materialProvider = providerRuntime.materialProvider();
+        this.modelProvider = providerRuntime.modelProvider();
 
-        WorldBootstrap.WorldRuntime worldRuntime = new WorldBootstrap(this, this::setPlayer).boot();
-        this.sky = worldRuntime.getSky();
-        this.terrainManager = worldRuntime.getTerrainManager();
-        this.shaders = worldRuntime.getShaders();
-        this.worldUpdate = worldRuntime.getWorldUpdate();
-        this.spawnManager = worldRuntime.getSpawnManager();
-        this.stateManager.attach(shaders);
-        this.stateManager.attach(worldUpdate);
-        this.stateManager.attach(spawnManager);
-        this.moduleRegistry.register(new WorldModule(terrainManager, spawnManager), this);
-        this.moduleRegistry.register(new TerrainModule(terrainManager), this);
-        this.moduleRegistry.register(new ShaderModule(shaders), this);
-        this.moduleRegistry.register(new ParticleModule(worldUpdate.getParticleManager()), this);
-        this.moduleRegistry.register(new PlayerModule(this), this);
-        this.saveManager = new SaveManager(this);
-        this.moduleRegistry.register(new SaveModule(saveManager), this);
-        this.moduleRegistry.register(new IcoParserModule(), this);
+        KernelWorldBootstrap.KernelWorldRuntime worldRuntime = new KernelWorldBootstrap(this, frozenLands.getStateManager(), this::setPlayer).boot();
+        this.sky = worldRuntime.sky();
+        this.terrainManager = worldRuntime.terrainManager();
+        this.shaders = worldRuntime.shaders();
+        this.worldUpdate = worldRuntime.worldUpdate();
+        this.spawnManager = worldRuntime.spawnManager();
+
+        KernelModuleInstaller.KernelModuleRuntime moduleRuntime = new KernelModuleInstaller(this, moduleRegistry).install(worldRuntime);
+        this.saveManager = moduleRuntime.saveManager();
         runCoreAutoRunScripts();
         RuntimeManifestReporter.reportIfRequested(this);
         if (Boolean.getBoolean("frozenlands.runtimeManifestExit")) {
@@ -159,7 +127,7 @@ public class Kernel extends BaseAppState implements EngineContext {
 
     @Override
     public AssetManager getAssetManager() {
-        return assetManager;
+        return frozenLands.getAssetManager();
     }
 
     @Override
@@ -184,17 +152,17 @@ public class Kernel extends BaseAppState implements EngineContext {
 
     @Override
     public Camera getCamera() {
-        return camera;
+        return frozenLands.getCamera();
     }
 
     @Override
     public BulletAppState getBulletAppState() {
-        return bulletAppState;
+        return frozenLands.getBulletAppState();
     }
 
     @Override
     public Node getRootNode() {
-        return rootNode;
+        return frozenLands.getRootNode();
     }
 
     @Override
@@ -218,17 +186,17 @@ public class Kernel extends BaseAppState implements EngineContext {
 
     @Override
     public ViewPort getViewPort() {
-        return this.viewPort;
+        return frozenLands.getViewPort();
     }
 
     @Override
     public Node getGuiNode() {
-        return guiNode;
+        return frozenLands.getGuiNode();
     }
 
     @Override
     public FilterPostProcessor getFpp() {
-        return this.fpp;
+        return frozenLands.getFpp();
     }
 
     @Override

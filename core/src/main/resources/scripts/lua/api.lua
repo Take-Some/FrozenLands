@@ -18,7 +18,11 @@ local M = {
     "script.read",
     "script.run",
     "script.autorun",
-    "console.execute"
+    "console.execute",
+    "console.help",
+    "console.version",
+    "console.commandsList",
+    "console.complete"
   }
 }
 
@@ -79,6 +83,24 @@ end
 M.console = {}
 function M.console.execute(line)
   return M.call("console.execute", { line = line })
+end
+function M.console.run(line)
+  return M.console.execute(line)
+end
+function M.console.help(command)
+  return M.call("console.help", { command = command or "" })
+end
+function M.console.version()
+  return M.call("console.version", {})
+end
+function M.console.commandsList()
+  return M.call("console.commandsList", {})
+end
+function M.console.commands()
+  return M.console.commandsList()
+end
+function M.console.complete(prefix)
+  return M.call("console.complete", { prefix = prefix or "" })
 end
 
 return M

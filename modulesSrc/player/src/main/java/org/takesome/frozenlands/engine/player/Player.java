@@ -14,13 +14,14 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
 import org.takesome.frozenlands.engine.EngineContext;
-import org.takesome.frozenlands.engine.player.camera.CameraFollowSpatial;
+import org.takesome.frozenlands.engine.player.camera.PlayerCameraRig;
 import org.takesome.frozenlands.engine.player.input.FPSViewControl;
 import org.takesome.frozenlands.engine.player.input.UserInputHandler;
 import org.takesome.frozenlands.engine.resources.ModuleIndexCatalog;
 import org.slf4j.Logger;
 
 import java.util.Map;
+import java.util.function.Consumer;
 
 public class Player extends Node {
 
@@ -29,6 +30,7 @@ public class Player extends Node {
     private PlayerSoundProvider playerSoundProvider;
     private PlayerModel playerModel;
     private UserInputHandler userInputHandler;
+    private PlayerCameraRig cameraRig;
     private PhysicsSpace pspace;
 
     public Player(EngineContext kernel) {
@@ -87,7 +89,7 @@ public class Player extends Node {
 
         // Load playerOptions logic
         addControl(userInputHandler);
-        addControl(new CameraFollowSpatial(getUserInputHandler(), cam));
+        cameraRig = new PlayerCameraRig(this, getUserInputHandler(), cam, kernelInterface);
         addControl(new ActionsControl(this));
         addControl(new FPSViewControl(FPSViewControl.Mode.WORLD_SCENE));
         this.onSpawn();
@@ -110,6 +112,27 @@ public class Player extends Node {
         addControl(new ActionsControl(this));
     }
 
+
+    public Map<String, Object> publishEvent(String topic, Map<String, Object> payload) {
+        return kernelInterface.getModuleRegistry().publishEvent(topic, payload);
+    }
+
+    public Map<String, Object> publishLiveEvent(String topic, Map<String, Object> payload) {
+        return kernelInterface.getModuleRegistry().publishLiveEvent(topic, payload);
+    }
+
+    public AutoCloseable subscribeEvent(String topic, Consumer<Map<String, Object>> listener) {
+        return subscribeEvent(topic, listener, false);
+    }
+
+    public AutoCloseable subscribeEvent(String topic, Consumer<Map<String, Object>> listener, boolean replayLatest) {
+        return kernelInterface.getModuleRegistry().getEventBus().subscribe(topic, listener, replayLatest);
+    }
+
+    public int runtimeId() {
+        return System.identityHashCode(this);
+    }
+
     public Logger getLogger() {
         return kernelInterface.getLogger();
     }
@@ -127,6 +150,10 @@ public class Player extends Node {
 
     public UserInputHandler getUserInputHandler() {
         return userInputHandler;
+    }
+
+    public PlayerCameraRig getCameraRig() {
+        return cameraRig;
     }
 
     public AssetManager getAssetManager() {

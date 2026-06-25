@@ -22,7 +22,7 @@ public final class RuntimeManifestReporter {
 
         System.out.println("[FrozenLands RuntimeManifest] providers=" + providers.keySet());
         System.out.println("[FrozenLands RuntimeManifest] modules=" + modules.keySet());
-        reportModule(modules, "engine.core", List.of("status", "manifest", "modules", "providers", "call.module", "event.publish", "script.list", "script.read", "script.run", "script.autorun", "console.execute"));
+        reportModule(modules, "engine.core", List.of("status", "manifest", "modules", "providers", "call.module", "event.publish", "script.list", "script.read", "script.run", "script.autorun", "console.execute", "console.help", "console.version", "console.commandsList", "console.complete"));
         reportModule(modules, "engine.save", List.of("snapshot", "save", "load", "list"));
         reportModule(modules, "engine.particles", List.of("status", "snow.enable", "snow.rate", "emit", "impact"));
         reportModule(modules, "engine.terrain", List.of("status", "chunks", "heightAt", "spawnLocation"));

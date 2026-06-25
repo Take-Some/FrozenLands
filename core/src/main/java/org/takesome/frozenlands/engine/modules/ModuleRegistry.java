@@ -46,6 +46,10 @@ public final class ModuleRegistry {
         return eventBus.publish(topic, payload);
     }
 
+    public Map<String, Object> publishLiveEvent(String topic, Map<String, Object> payload) {
+        return eventBus.publishLive(topic, payload);
+    }
+
     public ModuleEventBus getEventBus() {
         return eventBus;
     }

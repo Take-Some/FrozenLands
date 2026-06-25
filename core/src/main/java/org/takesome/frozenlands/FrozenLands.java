@@ -1,17 +1,37 @@
 package org.takesome.frozenlands;
 
-import com.jme3.app.SimpleApplication;
+import com.jme3.app.Application;
+import com.jme3.app.LegacyApplication;
+import com.jme3.app.LostFocusBehavior;
+import com.jme3.app.state.AppStateManager;
+import com.jme3.asset.AssetManager;
 import com.jme3.asset.plugins.FileLocator;
+import com.jme3.audio.AudioRenderer;
+import com.jme3.audio.Listener;
 import com.jme3.bullet.BulletAppState;
+import com.jme3.input.InputManager;
+import com.jme3.input.KeyInput;
+import com.jme3.input.controls.ActionListener;
+import com.jme3.input.controls.KeyTrigger;
 import com.jme3.post.FilterPostProcessor;
+import com.jme3.profile.AppProfiler;
+import com.jme3.renderer.Camera;
+import com.jme3.renderer.RenderManager;
+import com.jme3.renderer.Renderer;
+import com.jme3.renderer.ViewPort;
+import com.jme3.renderer.queue.RenderQueue;
+import com.jme3.scene.Node;
+import com.jme3.scene.Spatial;
 import com.jme3.system.AppSettings;
+import com.jme3.system.JmeContext;
+import com.jme3.system.Timer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.takesome.frozenlands.engine.Kernel;
 import org.takesome.frozenlands.engine.config.ConfigReader;
 import org.takesome.frozenlands.engine.icons.IcoFileParser;
 import org.takesome.frozenlands.engine.icons.selection.IcoImageSelector;
 import org.takesome.frozenlands.engine.resources.ModuleIndexCatalog;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -19,17 +39,22 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 
-public class FrozenLands extends SimpleApplication {
+public final class FrozenLands implements Application {
     private static final String WINDOW_ICON_ASSET = "FrozenLands.ico";
+    private static final String EXIT_MAPPING = "engine.application.exit";
 
+    private final RuntimeHost runtime = new RuntimeHost();
+    private final Node rootNode = new Node("Root Node");
+    private final Node guiNode = new Node("Gui Node");
+    private final Logger logger = LoggerFactory.getLogger(FrozenLands.class);
 
     private BulletAppState bulletAppState;
     private FilterPostProcessor fpp;
     private Map CONFIG;
     private int numSamples;
-
-    private final Logger logger = LoggerFactory.getLogger(FrozenLands.class);
 
     public static void main(String[] args) {
         FrozenLands app = new FrozenLands();
@@ -39,29 +64,73 @@ public class FrozenLands extends SimpleApplication {
         cfg.setFullscreen(false);
         cfg.setSamples(16);
         cfg.setTitle("FrozenLands");
-        app.setShowSettings(!Boolean.getBoolean("frozenlands.skipSettings"));
-        app.setDisplayFps(true);
-        app.setDisplayStatView(false);
         app.setSettings(cfg);
         setIcon(cfg);
         app.start();
     }
 
-    @Override
-    public void simpleInitApp() {
+    private void initializeRuntimeHost() {
+        runtime.setLostFocusBehavior(LostFocusBehavior.Disabled);
+        runtime.gainFocus();
+        runtime.enableInput();
+        initializeSceneGraph();
+        installExitMapping();
+        initializeRuntime();
+    }
+
+    private void updateRuntimeHost() {
+        float tpf = runtime.getTimer().getTimePerFrame();
+        runtime.getStateManager().update(tpf);
+        rootNode.updateLogicalState(tpf);
+        guiNode.updateLogicalState(tpf);
+        rootNode.updateGeometricState();
+        guiNode.updateGeometricState();
+        RenderManager renderManager = runtime.getRenderManager();
+        runtime.getStateManager().render(renderManager);
+        renderManager.render(tpf, runtime.getContext().isRenderable());
+        runtime.getStateManager().postRender();
+    }
+
+    private void initializeSceneGraph() {
+        rootNode.setCullHint(Spatial.CullHint.Never);
+        guiNode.setCullHint(Spatial.CullHint.Never);
+        guiNode.setQueueBucket(RenderQueue.Bucket.Gui);
+        runtime.getViewPort().attachScene(rootNode);
+        runtime.getGuiViewPort().attachScene(guiNode);
+    }
+
+    private void initializeRuntime() {
         registerMutableAssetRoots();
         CONFIG = new ConfigReader(new String[]{"userInput"}).getCfgMaps();
-        numSamples = getContext().getSettings().getSamples();
+        numSamples = runtime.getContext().getSettings().getSamples();
         bulletAppState = new BulletAppState();
 
-        //bulletAppState.setDebugViewPorts(viewPort);
-        //bulletAppState.setDebugEnabled(true);
+        fpp = new FilterPostProcessor(runtime.getAssetManager());
+        if (numSamples > 0) {
+            fpp.setNumSamples(numSamples);
+        }
 
-        fpp = new FilterPostProcessor(assetManager);
-        if (numSamples > 0) fpp.setNumSamples(numSamples);
+        runtime.getStateManager().attach(bulletAppState);
+        runtime.getStateManager().attach(new Kernel(this));
+    }
 
-        stateManager.attach(bulletAppState);
-        stateManager.attach(new Kernel(this));
+    private void installExitMapping() {
+        InputManager inputManager = runtime.getInputManager();
+        if (!inputManager.hasMapping(EXIT_MAPPING)) {
+            inputManager.addMapping(EXIT_MAPPING, new KeyTrigger(KeyInput.KEY_ESCAPE));
+        }
+        inputManager.addListener(runtime, EXIT_MAPPING);
+    }
+
+    private void cleanupExitMapping() {
+        InputManager inputManager = runtime.getInputManager();
+        if (inputManager == null) {
+            return;
+        }
+        inputManager.removeListener(runtime);
+        if (inputManager.hasMapping(EXIT_MAPPING)) {
+            inputManager.deleteMapping(EXIT_MAPPING);
+        }
     }
 
     private void registerMutableAssetRoots() {
@@ -73,7 +142,7 @@ public class FrozenLands extends SimpleApplication {
     private void registerMutableAssetRoot(String path) {
         File root = new File(path);
         if (root.isDirectory()) {
-            assetManager.registerLocator(root.getPath(), FileLocator.class);
+            runtime.getAssetManager().registerLocator(root.getPath(), FileLocator.class);
         }
     }
 
@@ -102,19 +171,86 @@ public class FrozenLands extends SimpleApplication {
         return null;
     }
 
+    public Node getRootNode() {
+        return rootNode;
+    }
+
+    public Node getGuiNode() {
+        return guiNode;
+    }
+
     public BulletAppState getBulletAppState() {
-        return this.bulletAppState;
+        return bulletAppState;
     }
 
     public FilterPostProcessor getFpp() {
-        return this.fpp;
+        return fpp;
     }
 
     public Map getCONFIG() {
-        return this.CONFIG;
+        return CONFIG;
     }
 
     public Logger getLogger() {
-        return this.logger;
+        return logger;
+    }
+
+    @Override public LostFocusBehavior getLostFocusBehavior() { return runtime.getLostFocusBehavior(); }
+    @Override public void setLostFocusBehavior(LostFocusBehavior behavior) { runtime.setLostFocusBehavior(behavior); }
+    @Override public boolean isPauseOnLostFocus() { return runtime.isPauseOnLostFocus(); }
+    @Override public void setPauseOnLostFocus(boolean pauseOnLostFocus) { runtime.setPauseOnLostFocus(pauseOnLostFocus); }
+    @Override public void setSettings(AppSettings settings) { runtime.setSettings(settings); }
+    @Override public void setTimer(Timer timer) { runtime.setTimer(timer); }
+    @Override public Timer getTimer() { return runtime.getTimer(); }
+    @Override public AssetManager getAssetManager() { return runtime.getAssetManager(); }
+    @Override public InputManager getInputManager() { return runtime.getInputManager(); }
+    @Override public AppStateManager getStateManager() { return runtime.getStateManager(); }
+    @Override public RenderManager getRenderManager() { return runtime.getRenderManager(); }
+    @Override public Renderer getRenderer() { return runtime.getRenderer(); }
+    @Override public AudioRenderer getAudioRenderer() { return runtime.getAudioRenderer(); }
+    @Override public Listener getListener() { return runtime.getListener(); }
+    @Override public JmeContext getContext() { return runtime.getContext(); }
+    @Override public Camera getCamera() { return runtime.getCamera(); }
+    @Override public void start() { runtime.start(); }
+    @Override public void start(boolean waitFor) { runtime.start(waitFor); }
+    @Override public void setAppProfiler(AppProfiler profiler) { runtime.setAppProfiler(profiler); }
+    @Override public AppProfiler getAppProfiler() { return runtime.getAppProfiler(); }
+    @Override public void restart() { runtime.restart(); }
+    @Override public void stop() { runtime.stop(); }
+    @Override public void stop(boolean waitFor) { runtime.stop(waitFor); }
+    @Override public <V> Future<V> enqueue(Callable<V> callable) { return runtime.enqueue(callable); }
+    @Override public void enqueue(Runnable runnable) { runtime.enqueue(runnable); }
+    @Override public ViewPort getGuiViewPort() { return runtime.getGuiViewPort(); }
+    @Override public ViewPort getViewPort() { return runtime.getViewPort(); }
+
+    private final class RuntimeHost extends LegacyApplication implements ActionListener {
+        @Override
+        public void initialize() {
+            super.initialize();
+            initializeRuntimeHost();
+        }
+
+        private void enableInput() {
+            inputEnabled = true;
+        }
+
+        @Override
+        public void update() {
+            super.update();
+            updateRuntimeHost();
+        }
+
+        @Override
+        public void destroy() {
+            cleanupExitMapping();
+            super.destroy();
+        }
+
+        @Override
+        public void onAction(String name, boolean isPressed, float tpf) {
+            if (EXIT_MAPPING.equals(name) && isPressed) {
+                stop();
+            }
+        }
     }
 }

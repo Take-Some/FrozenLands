@@ -3,7 +3,7 @@ plugins {
 }
 
 def modulesRoot = rootProject.file('modulesSrc')
-def moduleDirs = modulesRoot.exists() ? modulesRoot.listFiles().findAll { it.isDirectory() }.sort { it.name } : []
+def moduleDirs = modulesRoot.exists() ? modulesRoot.listFiles().findAll { it.isDirectory() && new File(it, 'module.index.json').exists() }.sort { it.name } : []
 def moduleJavaSourceDirs = moduleDirs.collect { new File(it, 'src/main/java') }.findAll { it.exists() }
 
 sourceSets {
@@ -30,7 +30,7 @@ dependencies {
     api "org.jmonkeyengine:jme3-jogg:$jmeVersion"
 
     api 'com.github.stephengold:Minie:8.2.0'
-    api 'dev.takesome:sky-simulation:1.0.0-SNAPSHOT'
+    api 'dev.takesome:sky-simulation:1.1.0'
     api 'com.github.stephengold:Heart:9.2.0'
     api 'com.sudoplay.joise:joise:1.1.0'
     api 'com.fasterxml.jackson.core:jackson-databind:2.22.0'

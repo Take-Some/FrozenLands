@@ -44,7 +44,7 @@ public final class LuaScriptExecutor {
         manifest.put("attached", true);
         manifest.put("engine", ENGINE_NAME);
         manifest.put("version", ENGINE_VERSION);
-        manifest.put("bridge", "engine.core/java.callModule/java.callProvider/java.publishModuleEvent");
+        manifest.put("bridge", "engine.core/java.callModule/java.callProvider/java.console/java.commandsList/java.publishModuleEvent");
         manifest.put("sandboxed", true);
         manifest.put("disabledLibs", List.of("io", "os", "debug", "luajava", "dofile", "loadfile"));
         manifest.put("preloadedModules", List.copyOf(context.getModuleRegistry().snapshot().keySet()));
@@ -186,6 +186,38 @@ public final class LuaScriptExecutor {
             @Override
             public Varargs invoke(Varargs args) {
                 return toLua(new LuaProviderBridge(context).exportRuntimeManifest());
+            }
+        });
+        java.set("console", new VarArgFunction() {
+            @Override
+            public Varargs invoke(Varargs args) {
+                return toLua(new LuaProviderBridge(context).executeConsole(args.checkjstring(1)));
+            }
+        });
+        java.set("consoleHelp", new VarArgFunction() {
+            @Override
+            public Varargs invoke(Varargs args) {
+                String command = args.narg() >= 1 ? args.arg(1).tojstring() : "";
+                return toLua(new LuaProviderBridge(context).exportConsoleHelp(command));
+            }
+        });
+        java.set("consoleVersion", new VarArgFunction() {
+            @Override
+            public Varargs invoke(Varargs args) {
+                return toLua(new LuaProviderBridge(context).exportConsoleVersion());
+            }
+        });
+        java.set("commandsList", new VarArgFunction() {
+            @Override
+            public Varargs invoke(Varargs args) {
+                return toLua(new LuaProviderBridge(context).exportConsoleCommands());
+            }
+        });
+        java.set("consoleComplete", new VarArgFunction() {
+            @Override
+            public Varargs invoke(Varargs args) {
+                String prefix = args.narg() >= 1 ? args.arg(1).tojstring() : "";
+                return toLua(new LuaProviderBridge(context).exportConsoleComplete(prefix));
             }
         });
         java.set("eventsSnapshot", new VarArgFunction() {

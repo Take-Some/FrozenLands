@@ -3,6 +3,7 @@ package org.takesome.frozenlands.engine.lua;
 import org.takesome.frozenlands.engine.EngineContext;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +65,27 @@ public final class LuaProviderBridge {
 
     public Map<String, Object> publishModuleEvent(String topic, Map<String, Object> payload) {
         return context.getModuleRegistry().publishEvent(topic, payload);
+    }
+
+
+    public Map<String, Object> executeConsole(String line) {
+        return context.getModuleRegistry().call("engine.core", "console.execute", Map.of("line", line == null ? "" : line));
+    }
+
+    public Map<String, Object> exportConsoleHelp(String command) {
+        return context.getModuleRegistry().call("engine.core", "console.help", Map.of("command", command == null ? "" : command));
+    }
+
+    public Map<String, Object> exportConsoleVersion() {
+        return context.getModuleRegistry().call("engine.core", "console.version", Collections.emptyMap());
+    }
+
+    public Map<String, Object> exportConsoleCommands() {
+        return context.getModuleRegistry().call("engine.core", "console.commandsList", Collections.emptyMap());
+    }
+
+    public Map<String, Object> exportConsoleComplete(String prefix) {
+        return context.getModuleRegistry().call("engine.core", "console.complete", Map.of("prefix", prefix == null ? "" : prefix));
     }
 
     public List<Map<String, Object>> drainJavaEvents() {
