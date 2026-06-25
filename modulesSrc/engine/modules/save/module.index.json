@@ -1,0 +1,19 @@
+{
+  "schema": "frozenlands.module.index.v1",
+  "module": "engine:modules:save",
+  "modulePath": "engine:modules:save",
+  "id": "engine.save",
+  "type": "runtime",
+  "description": "Save runtime module: snapshot, save, load and list.",
+  "lua": {
+    "api": "lua/api.lua",
+    "events": "lua/events.lua",
+    "usage": "local m = require('engine.save'); m.call('status', {})"
+  },
+  "runtime": {
+    "configs": {},
+    "assetRoots": [
+      "assets"
+    ]
+  }
+}

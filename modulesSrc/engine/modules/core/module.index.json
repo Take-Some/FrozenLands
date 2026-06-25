@@ -1,0 +1,21 @@
+{
+  "schema": "frozenlands.module.index.v1",
+  "module": "engine:modules:core",
+  "modulePath": "engine:modules:core",
+  "id": "engine.core",
+  "type": "core",
+  "description": "Core Lua bridge, scripting support and future console entrypoint.",
+  "lua": {
+    "api": "lua/api.lua",
+    "events": "lua/events.lua",
+    "usage": "local core = require('engine.core'); core.module('engine.particles').call('status', {})"
+  },
+  "runtime": {
+    "configs": {
+      "runtime": "assets/config/runtime.json"
+    },
+    "assetRoots": [
+      "assets"
+    ]
+  }
+}

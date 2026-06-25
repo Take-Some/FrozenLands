@@ -1,0 +1,41 @@
+{
+  "snow": {
+    "enabled": true,
+    "particles": 7000,
+    "particlesPerSecond": 450.0,
+    "areaXZ": 220.0,
+    "areaHeight": 90.0,
+    "followHeight": 55.0,
+    "startSize": 0.045,
+    "endSize": 0.09,
+    "lowLife": 6.0,
+    "highLife": 14.0,
+    "gravityY": -0.32,
+    "velocityX": 0.7,
+    "velocityY": -0.35,
+    "velocityZ": 0.2,
+    "velocityVariation": 0.65
+  },
+  "effects": {
+    "snowImpact": {
+      "texture": "textures/snowflake.png",
+      "particles": 48,
+      "life": 0.65,
+      "startSize": 0.04,
+      "endSize": 0.16,
+      "gravityY": -0.2,
+      "velocityY": 0.8,
+      "velocityVariation": 0.9
+    },
+    "smoke": {
+      "texture": "textures/snowflake.png",
+      "particles": 96,
+      "life": 1.5,
+      "startSize": 0.12,
+      "endSize": 0.7,
+      "gravityY": 0.05,
+      "velocityY": 0.25,
+      "velocityVariation": 0.7
+    }
+  }
+}

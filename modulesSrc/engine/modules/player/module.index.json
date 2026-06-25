@@ -1,0 +1,22 @@
+{
+  "schema": "frozenlands.module.index.v1",
+  "module": "engine:modules:player",
+  "modulePath": "engine:modules:player",
+  "id": "engine.player",
+  "type": "runtime",
+  "description": "Player runtime module: movement, look, physics and HUD API.",
+  "lua": {
+    "api": "lua/api.lua",
+    "events": "lua/events.lua",
+    "usage": "local m = require('engine.player'); m.call('status', {})"
+  },
+  "runtime": {
+    "configs": {
+      "runtime": "assets/config/runtime.json",
+      "playerOptions": "assets/config/player.json"
+    },
+    "assetRoots": [
+      "assets"
+    ]
+  }
+}

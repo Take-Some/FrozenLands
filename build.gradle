@@ -1,71 +1,82 @@
 plugins {
     id 'application'
     id 'java'
-    id "io.github.0ffz.github-packages" version "1.2.1"
 }
 
-apply plugin: 'java'
+group = 'org.takesome'
+version = '1.0-SNAPSHOT'
 
-group 'org.foxesworld'
-version '1.0-SNAPSHOT'
+application {
+    mainClass = 'org.takesome.frozenlands.FrozenLands'
+}
 
-def libsDir = project.projectDir.toString() + File.separator + "lib"
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+def modulesSrcDir = file('modulesSrc')
+def moduleIndexFiles = modulesSrcDir.exists() ? fileTree(modulesSrcDir) { include '**/module.index.json' }.files : []
+def moduleDirs = moduleIndexFiles.collect { it.parentFile }.unique()
+def moduleJavaSourceDirs = moduleDirs.collect { new File(it as File, 'src/main/java') }.findAll { it.exists() }
+def moduleResourceDirs = moduleDirs.collect { new File(it as File, 'src/main/resources') }.findAll { it.exists() }
+
+sourceSets {
+    main {
+        java.srcDirs = [file('src/main/java')] + moduleJavaSourceDirs
+        resources.srcDirs = [file('src/main/resources')] + moduleResourceDirs
+    }
+}
 
 repositories {
-    flatDir {
-        dirs libsDir
-    }
+    
+    mavenLocal()
     mavenCentral()
-    maven { url 'https://jitpack.io' }
-    maven githubPackage.invoke("riccardobl")
-    maven githubPackage.invoke("jmePhonon")
+    maven { url = uri('https://jitpack.io') }
+}
+
+
+configurations.configureEach {
+    resolutionStrategy.eachDependency { details ->
+        if (details.requested.group == 'org.jmonkeyengine') {
+            details.useVersion '3.9.0-stable'
+        }
+    }
 }
 
 dependencies {
-    //JME
-    implementation files('lib/jme3/jme3-core.jar')
-    implementation files('lib/jme3/jme3-desktop.jar')
-    implementation files('lib/jme3/jme3-lwjgl-3.6.1-stable.jar')
-    implementation files('lib/lwjgl.jar')
-    implementation files('lib/jme3/jme3-awt-dialogs.jar')
-    implementation files('lib/jme3/Minie-7.6.0+big3.jar')
-    implementation files('lib/jme3/SkyControl-1.0.4.jar')
-    implementation files('lib/jme3/jme3-plugins.jar')
-    implementation files('lib/jme3/jme3-terrain-3.6.1-stable.jar')
-    implementation files('lib/jme3/jme3-effects.jar')
-    implementation files('lib/jme3/jme3-jogg.jar')
-    implementation files('lib/jme3/j-ogg-vorbis.jar')
-    implementation files('lib/jme3/Heart-8.7.0.jar')
+    def jmeVersion = '3.9.0-stable'
 
-    //Third Party
-    implementation files('lib/foxesworld/cfgProvider-1.5.0-Release.jar')
-    implementation files('lib/foxesworld/LemurAutomaton-1.2.7.jar')
-    implementation files('lib/j3map-1.0-SNAPSHOT.jar')
+    // jMonkeyEngine
+    implementation "org.jmonkeyengine:jme3-core:$jmeVersion"
+    implementation "org.jmonkeyengine:jme3-desktop:$jmeVersion"
+    implementation "org.jmonkeyengine:jme3-lwjgl3:$jmeVersion"
+    implementation "org.jmonkeyengine:jme3-awt-dialogs:$jmeVersion"
+    implementation "org.jmonkeyengine:jme3-plugins:$jmeVersion"
+    implementation "org.jmonkeyengine:jme3-terrain:$jmeVersion"
+    implementation "org.jmonkeyengine:jme3-effects:$jmeVersion"
+    implementation "org.jmonkeyengine:jme3-jogg:$jmeVersion"
 
-    //PARSERS
-    implementation files('lib/gson.jar')
-    implementation files('lib/xpp3.jar')
+    // jME ecosystem
+    implementation 'com.github.stephengold:Minie:8.2.0'
+    implementation 'dev.takesome:sky-simulation:1.0.0-SNAPSHOT'
+    implementation 'com.github.stephengold:Heart:9.2.0'
 
-    //MEDIA
-    implementation files('lib/j-ogg-vorbis.jar')
-
-
-    //LEMUR
+    // UI / ECS / generation
+    implementation 'com.simsilica:lemur:1.16.0'
     implementation 'com.simsilica:lemur-proto:1.13.0'
-    implementation group: 'com.simsilica', name: 'lemur', version: '1.16.0'
+    implementation 'com.simsilica:sio2:1.8.0'
+    implementation 'com.simsilica:zay-es:1.6.0'
+    implementation 'com.sudoplay.joise:joise:1.1.0'
 
-    implementation group: 'com.sudoplay.joise', name: 'joise', version: '1.1.0'
-    implementation group: 'com.simsilica', name: 'sio2', version: '1.8.0'
+    // Parsers / serialization / scripting
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.22.0'
+    implementation 'com.google.code.gson:gson:2.14.0'
+    implementation 'xpp3:xpp3:1.1.4c'
+    implementation 'org.luaj:luaj-jse:3.0.1'
 
-    //ANIMATION
-    implementation  'wf.frk:jme-effekseer-native:0.4'
-    implementation  "wf.frk:jme_f3b:0.92"
+    // Logging
+    implementation 'org.apache.logging.log4j:log4j-core:2.26.0'
+    implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.26.0'
 
-    //ETC
-    implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.19.0'
-    implementation group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: '2.19.0'
-    implementation  files('lib/java-discord-rpc-2.0.1-all.jar')
-    implementation files('lib/zay-es-1.5.0.jar')
-
-    runtimeOnly group: 'org.codehaus.groovy', name: 'groovy-all', version: '3.0.9'
+    runtimeOnly 'org.codehaus.groovy:groovy-all:3.0.25'
 }

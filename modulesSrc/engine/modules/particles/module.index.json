@@ -1,0 +1,21 @@
+{
+  "schema": "frozenlands.module.index.v1",
+  "module": "engine:modules:particles",
+  "modulePath": "engine:modules:particles",
+  "id": "engine.particles",
+  "type": "runtime",
+  "description": "Particle runtime module: snow, emit and impact effects.",
+  "lua": {
+    "api": "lua/api.lua",
+    "events": "lua/events.lua",
+    "usage": "local m = require('engine.particles'); m.call('status', {})"
+  },
+  "runtime": {
+    "configs": {
+      "runtime": "assets/config/runtime.json"
+    },
+    "assetRoots": [
+      "assets"
+    ]
+  }
+}

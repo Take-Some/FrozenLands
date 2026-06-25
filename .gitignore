@@ -1,0 +1,30 @@
+# Gradle / build output
+.gradle/
+build/
+out/
+
+# IDE metadata
+.idea/
+*.iml
+.vscode/
+
+# Runtime logs
+logs/
+*.log
+
+# Local artifacts and bridge backups
+.ai-backups/
+artifacts/
+
+# Local binary drops; prefer Gradle/Maven dependencies
+lib/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.tmp
+
+# Java crash dumps
+hs_err_pid*
+replay_pid*

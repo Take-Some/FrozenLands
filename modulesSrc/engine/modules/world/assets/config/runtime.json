@@ -1,0 +1,10 @@
+{
+  "spawn": {
+    "x": 0.0,
+    "z": 0.0,
+    "clearance": 4.0,
+    "fallbackX": 0.0,
+    "fallbackY": 150.0,
+    "fallbackZ": 0.0
+  }
+}

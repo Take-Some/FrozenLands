@@ -1,0 +1,23 @@
+{
+  "bloom": {
+    "intensity": 1.0,
+    "exposurePower": 60
+  },
+  "lightScattering": {
+    "density": 0.5,
+    "x": 1477.1023,
+    "y": 381.164,
+    "z": -1769.0748
+  },
+  "dof": {
+    "focusDistance": 0,
+    "focusRange": 100
+  },
+  "shadows": {
+    "shadowMapSize": 2048,
+    "splits": 3,
+    "shadowZExtend": 180.0,
+    "shadowIntensity": 0.45,
+    "edgesThickness": 3
+  }
+}

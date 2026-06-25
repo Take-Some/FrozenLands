@@ -1,0 +1,27 @@
+{
+  "grid": {
+    "patchSize": 65,
+    "quadSize": 257,
+    "tileNoiseScale": 96.0
+  },
+  "scale": {
+    "x": 1.35,
+    "y": 1.0,
+    "z": 1.35
+  },
+  "lod": {
+    "patchSize": 129,
+    "multiplier": 2.2
+  },
+  "mountains": {
+    "heightOffset": 50.0
+  },
+  "noise": {
+    "roughness": 0.82,
+    "frequency": 0.1,
+    "amplitude": 1.1,
+    "lacunarity": 2.12,
+    "octaves": 8,
+    "scale": 0.02125
+  }
+}

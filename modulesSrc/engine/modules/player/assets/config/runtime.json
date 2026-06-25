@@ -1,0 +1,22 @@
+{
+  "movement": {
+    "walkSpeed": 4.0,
+    "runSpeed": 8.0,
+    "maxSmoothSpeedChange": 2.0
+  },
+  "look": {
+    "walkingRotationMultiplier": 0.04,
+    "runningRotationMultiplier": 0.1,
+    "minPitch": -0.85,
+    "maxPitch": 1.1
+  },
+  "physics": {
+    "walkDamping": 0.9,
+    "jumpDamping": 0.0,
+    "airGroundDistanceLimit": 1.0,
+    "characterHeight": 2.0
+  },
+  "hud": {
+    "enabled": true
+  }
+}

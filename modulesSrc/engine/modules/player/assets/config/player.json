@@ -1,0 +1,12 @@
+{
+  "model": "Models/char.glb",
+  "scale": 1.0,
+  "cullHint": "Never",
+  "shadowMode": "Cast",
+  "radius": 0.25,
+  "height": 2.0,
+  "mass": 175.0,
+  "jumpForce": 500.0,
+  "initialHealth": 100,
+  "faceWalkDirection": true
+}
