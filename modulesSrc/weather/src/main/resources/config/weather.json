@@ -1,0 +1,28 @@
+{
+  "weather": {
+    "autoStartSnow": true,
+    "initialWind": {
+      "x": 0.75,
+      "y": 0.0,
+      "z": -0.25
+    },
+    "snow": {
+      "maxFlakes": 1100,
+      "spawnWidth": 44.0,
+      "spawnDepth": 44.0,
+      "spawnMinHeight": 9.0,
+      "spawnMaxHeight": 32.0,
+      "killBelowHeight": -5.0,
+      "minFallSpeed": 3.2,
+      "maxFallSpeed": 8.4,
+      "drift": 0.55,
+      "minSize": 0.045,
+      "maxSize": 0.14,
+      "minAlpha": 0.38,
+      "maxAlpha": 0.9,
+      "minLife": 4.0,
+      "maxLife": 13.0,
+      "maxAngularVelocity": 1.6
+    }
+  }
+}

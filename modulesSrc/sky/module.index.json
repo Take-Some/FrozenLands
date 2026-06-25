@@ -1,0 +1,27 @@
+{
+  "schema": "frozenlands.module.index.v1",
+  "module": "sky",
+  "modulePath": "modulesSrc/sky",
+  "id": "engine.sky",
+  "type": "runtime",
+  "description": "Sky runtime module.",
+  "project": {
+    "id": "takesome.frozenlands",
+    "name": "Take Some() Frozen Lands",
+    "projectModule": true,
+    "moduleRole": "runtime",
+    "moduleLayer": "runtime",
+    "sourceRoot": "modulesSrc/sky"
+  },
+  "lua": {
+    "api": "src/main/resources/scripts/lua/api.lua",
+    "events": "src/main/resources/scripts/lua/events.lua",
+    "usage": "local sky = require('engine.sky'); sky.atmosphere.setGradient('FANTASY', 5.0)"
+  },
+  "runtime": {
+    "configs": {},
+    "assetRoots": [
+      "src/main/resources"
+    ]
+  }
+}

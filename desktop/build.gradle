@@ -3,7 +3,8 @@ plugins {
 }
 
 application {
-    mainClass = 'org.takesome.frozenlands.desktop.DesktopLauncher'
+    mainClass = 'org.takesome.frozenlands.desktop.Boot'
+    applicationDefaultJvmArgs = ['-Dlog4j2.skipJansi=false', '-Dlog4j.skipJansi=false']
 }
 
 sourceSets {
@@ -23,4 +24,5 @@ dependencies {
 
 tasks.named('run', JavaExec) {
     workingDir = rootProject.projectDir
+    jvmArgs '-Dlog4j2.skipJansi=false', '-Dlog4j.skipJansi=false'
 }

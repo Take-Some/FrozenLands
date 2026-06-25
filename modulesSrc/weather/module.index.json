@@ -1,0 +1,30 @@
+{
+  "schema": "frozenlands.module.index.v1",
+  "module": "weather",
+  "modulePath": "modulesSrc/weather",
+  "id": "engine.weather",
+  "type": "runtime",
+  "description": "Weather runtime module: Frostpunk-style snow precipitation, wind and weather state API.",
+  "project": {
+    "id": "takesome.frozenlands",
+    "name": "Take Some() Frozen Lands",
+    "projectModule": true,
+    "moduleRole": "runtime",
+    "moduleLayer": "runtime",
+    "sourceRoot": "modulesSrc/weather"
+  },
+  "lua": {
+    "api": "src/main/resources/scripts/lua/api.lua",
+    "events": "src/main/resources/scripts/lua/events.lua",
+    "usage": "local weather = require('engine.weather'); weather.start_snow()"
+  },
+  "runtime": {
+    "configs": {
+      "runtime": "src/main/resources/config/runtime.json",
+      "weather": "src/main/resources/config/weather.json"
+    },
+    "assetRoots": [
+      "src/main/resources"
+    ]
+  }
+}

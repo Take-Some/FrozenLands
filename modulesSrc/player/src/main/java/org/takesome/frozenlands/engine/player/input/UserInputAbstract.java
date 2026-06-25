@@ -22,8 +22,8 @@ public abstract class UserInputAbstract extends AbstractControl implements Actio
     private float walkSpeed = 4.0f;
     private float runSpeed = 8.0f;
     private float maxSmoothSpeedChange = 2.0f;
-    private float rotationMultiplierWalking = 0.04f;
-    private float rotationMultiplierRunning = 0.1f;
+    private float rotationMultiplierWalking = 0.035f;
+    private float rotationMultiplierRunning = 0.050f;
     private PlayerState playerState = PlayerState.STANDING;
 
     private HashMap<String, List<Object>> userInputConfig;

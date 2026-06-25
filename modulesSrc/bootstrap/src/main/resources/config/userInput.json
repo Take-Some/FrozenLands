@@ -37,6 +37,10 @@
     {
       "inputName": "Crouch",
       "inputKey": 40
+    },
+    {
+      "inputName": "ViewToggle",
+      "inputKey": 47
     }
   ],
   "mouseAxis": [

@@ -29,9 +29,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.takesome.frozenlands.engine.Kernel;
 import org.takesome.frozenlands.engine.config.ConfigReader;
+import org.takesome.frozenlands.engine.events.EngineEventTopics;
 import org.takesome.frozenlands.engine.icons.IcoFileParser;
 import org.takesome.frozenlands.engine.icons.selection.IcoImageSelector;
 import org.takesome.frozenlands.engine.resources.ModuleIndexCatalog;
+import org.takesome.frozenlands.logging.LoggingBootstrap;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -44,7 +46,7 @@ import java.util.concurrent.Future;
 
 public final class FrozenLands implements Application {
     private static final String WINDOW_ICON_ASSET = "FrozenLands.ico";
-    private static final String EXIT_MAPPING = "engine.application.exit";
+    private static final String FOCUS_TOGGLE_MAPPING = "engine.application.focus.toggle";
 
     private final RuntimeHost runtime = new RuntimeHost();
     private final Node rootNode = new Node("Root Node");
@@ -53,19 +55,20 @@ public final class FrozenLands implements Application {
 
     private BulletAppState bulletAppState;
     private FilterPostProcessor fpp;
+    private Kernel kernel;
     private Map CONFIG;
     private int numSamples;
+    private boolean focusPaused;
 
     public static void main(String[] args) {
+        LoggingBootstrap.install();
         FrozenLands app = new FrozenLands();
-        var cfg = new AppSettings(true);
-        cfg.setVSync(false);
-        cfg.setResolution(2560, 1440);
-        cfg.setFullscreen(false);
-        cfg.setSamples(16);
-        cfg.setTitle("FrozenLands");
-        app.setSettings(cfg);
+        AppSettings cfg = PreLaunchSettingsDialog.request("FrozenLands");
+        if (cfg == null) {
+            return;
+        }
         setIcon(cfg);
+        app.setSettings(cfg);
         app.start();
     }
 
@@ -74,7 +77,7 @@ public final class FrozenLands implements Application {
         runtime.gainFocus();
         runtime.enableInput();
         initializeSceneGraph();
-        installExitMapping();
+        installFocusToggleMapping();
         initializeRuntime();
     }
 
@@ -111,25 +114,26 @@ public final class FrozenLands implements Application {
         }
 
         runtime.getStateManager().attach(bulletAppState);
-        runtime.getStateManager().attach(new Kernel(this));
+        kernel = new Kernel(this);
+        runtime.getStateManager().attach(kernel);
     }
 
-    private void installExitMapping() {
+    private void installFocusToggleMapping() {
         InputManager inputManager = runtime.getInputManager();
-        if (!inputManager.hasMapping(EXIT_MAPPING)) {
-            inputManager.addMapping(EXIT_MAPPING, new KeyTrigger(KeyInput.KEY_ESCAPE));
+        if (!inputManager.hasMapping(FOCUS_TOGGLE_MAPPING)) {
+            inputManager.addMapping(FOCUS_TOGGLE_MAPPING, new KeyTrigger(KeyInput.KEY_ESCAPE));
         }
-        inputManager.addListener(runtime, EXIT_MAPPING);
+        inputManager.addListener(runtime, FOCUS_TOGGLE_MAPPING);
     }
 
-    private void cleanupExitMapping() {
+    private void cleanupFocusToggleMapping() {
         InputManager inputManager = runtime.getInputManager();
         if (inputManager == null) {
             return;
         }
         inputManager.removeListener(runtime);
-        if (inputManager.hasMapping(EXIT_MAPPING)) {
-            inputManager.deleteMapping(EXIT_MAPPING);
+        if (inputManager.hasMapping(FOCUS_TOGGLE_MAPPING)) {
+            inputManager.deleteMapping(FOCUS_TOGGLE_MAPPING);
         }
     }
 
@@ -223,6 +227,37 @@ public final class FrozenLands implements Application {
     @Override public ViewPort getGuiViewPort() { return runtime.getGuiViewPort(); }
     @Override public ViewPort getViewPort() { return runtime.getViewPort(); }
 
+    private void toggleApplicationFocus() {
+        setApplicationFocusPaused(!focusPaused, "escape");
+    }
+
+    private void setApplicationFocusPaused(boolean paused, String reason) {
+        if (focusPaused == paused) {
+            return;
+        }
+        focusPaused = paused;
+        boolean focused = !paused;
+        boolean cursorVisible = paused;
+
+        if (runtime.getInputManager() != null) {
+            runtime.getInputManager().setCursorVisible(cursorVisible);
+        }
+
+        if (kernel != null) {
+            kernel.getModuleRegistry().publishEvent(EngineEventTopics.APPLICATION_FOCUS_CHANGED, Map.of(
+                    "focused", focused,
+                    "paused", paused,
+                    "reason", reason
+            ));
+            kernel.getModuleRegistry().publishEvent(EngineEventTopics.CURSOR_VISIBILITY_REQUESTED, Map.of("visible", cursorVisible));
+            kernel.getModuleRegistry().publishEvent(EngineEventTopics.CAMERA_FOLLOW_PAUSE_REQUESTED, Map.of("paused", paused));
+            kernel.getModuleRegistry().publishEvent(EngineEventTopics.CAMERA_LOOK_INPUT_ENABLED_REQUESTED, Map.of("enabled", focused));
+            kernel.getModuleRegistry().publishEvent(EngineEventTopics.PLAYER_INPUT_ENABLED_REQUESTED, Map.of("enabled", focused));
+        }
+
+        logger.info("Application focus {} by {}", focused ? "resumed" : "paused", reason);
+    }
+
     private final class RuntimeHost extends LegacyApplication implements ActionListener {
         @Override
         public void initialize() {
@@ -242,14 +277,14 @@ public final class FrozenLands implements Application {
 
         @Override
         public void destroy() {
-            cleanupExitMapping();
+            cleanupFocusToggleMapping();
             super.destroy();
         }
 
         @Override
         public void onAction(String name, boolean isPressed, float tpf) {
-            if (EXIT_MAPPING.equals(name) && isPressed) {
-                stop();
+            if (FOCUS_TOGGLE_MAPPING.equals(name) && isPressed) {
+                toggleApplicationFocus();
             }
         }
     }

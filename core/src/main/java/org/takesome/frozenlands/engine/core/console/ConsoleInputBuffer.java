@@ -28,6 +28,15 @@ final class ConsoleInputBuffer {
         }
     }
 
+    void append(String value) {
+        if (value == null || value.isEmpty()) {
+            return;
+        }
+        for (int index = 0; index < value.length(); index++) {
+            append(value.charAt(index));
+        }
+    }
+
     void backspace() {
         if (!line.isEmpty()) {
             line.deleteCharAt(line.length() - 1);

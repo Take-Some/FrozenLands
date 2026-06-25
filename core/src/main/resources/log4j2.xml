@@ -1,14 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN">
+    <Properties>
+        <Property name="ConsolePattern">%style{%d{HH:mm:ss.SSS}}{black} %highlight{%-5level}{FATAL=bright red, ERROR=red, WARN=yellow, INFO=green, DEBUG=cyan, TRACE=blue} %style{[%t]}{blue} %style{%logger{36}}{magenta} - %msg%n%throwable</Property>
+        <Property name="FilePattern">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{64} - %msg%n%throwable</Property>
+    </Properties>
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT">
-            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %msg%n"/>
+            <PatternLayout pattern="${ConsolePattern}" disableAnsi="false" noConsoleNoAnsi="false"/>
         </Console>
         <File name="File" fileName="logs/latest.log">
-            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+            <PatternLayout pattern="${FilePattern}"/>
         </File>
     </Appenders>
     <Loggers>
+        <Logger name="com.jme3" level="info"/>
+        <Logger name="jme3utilities" level="info"/>
+        <Logger name="org.takesome.frozenlands" level="debug"/>
         <Root level="info">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="File"/>

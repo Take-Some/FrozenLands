@@ -20,8 +20,9 @@ public class FPSViewControl extends AbstractControl{
     private void initialize() {
         if(ready) return; // initialize only once.
         ready=true;
-        if(mode==Mode.WORLD_SCENE)spatial.setCullHint(CullHint.Always);
-        else ((Node)spatial).getChild("body").setCullHint(CullHint.Always);       
+        if (mode == Mode.FPS_SCENE && spatial instanceof Node node && node.getChild("body") != null) {
+            node.getChild("body").setCullHint(CullHint.Always);
+        }
     }
 
     @Override

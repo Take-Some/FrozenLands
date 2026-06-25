@@ -1,12 +1,28 @@
 {
-  "model": "Models/char.glb",
+  "model": "Models/sarah/sarah.gltf",
   "scale": 1.0,
   "cullHint": "Never",
   "shadowMode": "Cast",
-  "radius": 0.25,
-  "height": 2.0,
   "mass": 175.0,
   "jumpForce": 500.0,
   "initialHealth": 100,
-  "faceWalkDirection": true
+  "faceWalkDirection": true,
+  "collision": {
+    "sourceNode": "",
+    "radiusOverride": 0.35,
+    "heightOverride": 1.8,
+    "radiusScale": 1.0,
+    "heightScale": 1.0,
+    "minRadius": 0.25,
+    "minHeight": 1.0
+  },
+  "camera": {
+    "defaultView": "THIRD_PERSON",
+    "firstPersonEyeHeight": 1.58,
+    "thirdPersonDistance": 6.0,
+    "thirdPersonHeight": 2.4,
+    "frontPersonDistance": 4.2,
+    "frontPersonHeight": 2.1,
+    "transitionSeconds": 0.36
+  }
 }

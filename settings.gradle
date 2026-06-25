@@ -27,3 +27,7 @@ include 'world'
 project(':world').projectDir = file('modulesSrc/world')
 include 'ico-parser'
 project(':ico-parser').projectDir = file('modulesSrc/ico-parser')
+include 'weather'
+project(':weather').projectDir = file('modulesSrc/weather')
+include 'sky'
+project(':sky').projectDir = file('modulesSrc/sky')

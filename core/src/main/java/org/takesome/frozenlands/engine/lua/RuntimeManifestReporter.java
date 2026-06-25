@@ -26,6 +26,7 @@ public final class RuntimeManifestReporter {
         reportModule(modules, "engine.save", List.of("snapshot", "save", "load", "list"));
         reportModule(modules, "engine.particles", List.of("status", "snow.enable", "snow.rate", "emit", "impact"));
         reportModule(modules, "engine.terrain", List.of("status", "chunks", "heightAt", "spawnLocation"));
+        reportModule(modules, "engine.sky", List.of("status", "command.execute", "atmosphere.setGradient", "weather.set", "weather.list", "clock.setTime", "environment.snapshot"));
         reportModule(modules, "engine.shaders", List.of("status", "setEnabled", "shadowSettings", "shadowSettings.set"));
         reportModule(modules, "engine.sound", List.of("load", "list.blocks", "list.events", "play"));
         reportModule(modules, "engine.material", List.of("load", "list", "get"));

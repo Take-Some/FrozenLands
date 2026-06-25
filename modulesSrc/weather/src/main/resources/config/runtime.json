@@ -1,0 +1,8 @@
+{
+  "scripting": {
+    "enabled": true,
+    "scriptRoots": [
+      "src/main/resources/scripts/lua"
+    ]
+  }
+}

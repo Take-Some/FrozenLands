@@ -14,6 +14,7 @@ import org.takesome.frozenlands.engine.events.EngineEventTopics;
 import org.takesome.frozenlands.engine.player.Player;
 import org.takesome.frozenlands.engine.ui.PlayerHud;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -28,6 +29,12 @@ public class UserInputHandler extends UserInputAbstract {
     private static final String ATTACK = "Attack";
     private static final String JUMP = "Jump";
     private static final String RUN = "Run";
+    private static final String VIEW_TOGGLE = "ViewToggle";
+    private static final float MAX_HEAD_YAW = 70f * FastMath.DEG_TO_RAD;
+    private static final float MIN_HEAD_PITCH = -35f * FastMath.DEG_TO_RAD;
+    private static final float MAX_HEAD_PITCH = 45f * FastMath.DEG_TO_RAD;
+    private static final float MIN_CAMERA_PITCH = -80f * FastMath.DEG_TO_RAD;
+    private static final float MAX_CAMERA_PITCH = 80f * FastMath.DEG_TO_RAD;
 
     private final Player playerInterface;
     private final Runnable attackCallback;
@@ -43,7 +50,9 @@ public class UserInputHandler extends UserInputAbstract {
     private AutoCloseable moveIntentSubscription;
     private AutoCloseable cameraLookInputSubscription;
     private AutoCloseable consoleVisibilitySubscription;
+    private AutoCloseable playerInputEnabledSubscription;
     private boolean cameraLookInputEnabled = true;
+    private boolean playerInputEnabled = true;
 
     public UserInputHandler(Player player, Runnable attackCallback) {
         this.playerInterface = player;
@@ -99,7 +108,7 @@ public class UserInputHandler extends UserInputAbstract {
     @Override
     protected void controlUpdate(float tpf) {
         init();
-        if (!isInit()) {
+        if (!isInit() || !playerInputEnabled) {
             return;
         }
         publishMoveIntent(new Vector3f(directions[0] ? 1 : directions[1] ? -1 : 0, 0, directions[2] ? 1 : directions[3] ? -1 : 0), 1.0f, tpf);
@@ -107,7 +116,7 @@ public class UserInputHandler extends UserInputAbstract {
 
     @Override
     public void onAnalog(String name, float value, float tpf) {
-        if (!cameraLookInputEnabled && name.startsWith("Rotate_")) {
+        if (!playerInputEnabled || (!cameraLookInputEnabled && name.startsWith("Rotate_"))) {
             return;
         }
         publishLive(EngineEventTopics.PLAYER_INPUT_ANALOG, Map.of(
@@ -120,6 +129,9 @@ public class UserInputHandler extends UserInputAbstract {
 
     @Override
     public void onAction(String binding, boolean isPressed, float tpf) {
+        if (!playerInputEnabled) {
+            return;
+        }
         publish(EngineEventTopics.PLAYER_INPUT_ACTION, Map.of(
                 "playerRef", playerRef,
                 "binding", binding,
@@ -131,6 +143,10 @@ public class UserInputHandler extends UserInputAbstract {
     @Override
     protected void movePlayer(Vector3f direction, float speedMultiplier, float tpf) {
         init();
+        if (!playerInputEnabled) {
+            characterControl.setWalkDirection(Vector3f.ZERO);
+            return;
+        }
         Quaternion tmpQtr = new Quaternion();
         float targetSpeed = isRunning() ? getRunSpeed() : getWalkSpeed();
         float speedChange = targetSpeed - getCurrentSpeed();
@@ -180,6 +196,11 @@ public class UserInputHandler extends UserInputAbstract {
         moveIntentSubscription = playerInterface.subscribeEvent(EngineEventTopics.PLAYER_MOVE_INTENT, this::handleMoveIntentEvent);
         cameraLookInputSubscription = playerInterface.subscribeEvent(EngineEventTopics.CAMERA_LOOK_INPUT_ENABLED_REQUESTED, this::handleCameraLookInputEnabledEvent, true);
         consoleVisibilitySubscription = playerInterface.subscribeEvent(EngineEventTopics.CONSOLE_VISIBILITY_CHANGED, this::handleConsoleVisibilityEvent, true);
+        playerInputEnabledSubscription = playerInterface.subscribeEvent(EngineEventTopics.PLAYER_INPUT_ENABLED_REQUESTED, this::handlePlayerInputEnabledEvent, true);
+    }
+
+    private void handlePlayerInputEnabledEvent(Map<String, Object> event) {
+        applyPlayerInputEnabled(bool(payload(event), "enabled"));
     }
 
     private void handleCameraLookInputEnabledEvent(Map<String, Object> event) {
@@ -188,6 +209,19 @@ public class UserInputHandler extends UserInputAbstract {
 
     private void handleConsoleVisibilityEvent(Map<String, Object> event) {
         applyCameraLookInputEnabled(!bool(payload(event), "open"));
+    }
+
+    private void applyPlayerInputEnabled(boolean enabled) {
+        playerInputEnabled = enabled;
+        if (!enabled) {
+            Arrays.fill(directions, false);
+            setRunning(false);
+            setAttacking(false);
+            setJumping(false);
+            if (characterControl != null) {
+                characterControl.setWalkDirection(Vector3f.ZERO);
+            }
+        }
     }
 
     private void applyCameraLookInputEnabled(boolean enabled) {
@@ -230,6 +264,7 @@ public class UserInputHandler extends UserInputAbstract {
             case ATTACK -> handleAttack(isPressed);
             case JUMP -> handleJump(isPressed);
             case RUN -> handleRun(isPressed);
+            case VIEW_TOGGLE -> handleViewToggle(isPressed);
             default -> publish("player.input.unhandled", Map.of("playerRef", playerRef, "binding", binding));
         }
     }
@@ -248,13 +283,13 @@ public class UserInputHandler extends UserInputAbstract {
         switch (name) {
             case "Rotate_Left" -> angles[1] += value;
             case "Rotate_Right" -> angles[1] -= value;
-            case "Rotate_Up" -> angles[0] -= value;
-            case "Rotate_Down" -> angles[0] += value;
+            case "Rotate_Up" -> angles[0] += value;
+            case "Rotate_Down" -> angles[0] -= value;
             default -> { }
         }
+        clampCameraPitch();
         publishLookIntent(name, value);
-        applyLookDirection();
-        publishMoveIntent(new Vector3f(directions[0] ? 1 : directions[1] ? -1 : 0, 0, directions[2] ? 1 : directions[3] ? -1 : 0), value, tpf);
+        publishHeadTurnRequested(name, value, tpf);
     }
 
     private void handleMoveIntentEvent(Map<String, Object> event) {
@@ -288,13 +323,39 @@ public class UserInputHandler extends UserInputAbstract {
         publish(EngineEventTopics.PLAYER_RUN_CHANGED, Map.of("playerRef", playerRef, "running", isPressed));
     }
 
-    private void applyLookDirection() {
-        Quaternion tmpRot = new Quaternion();
-        angles[0] = FastMath.clamp(angles[0], -0.85f, 1.1f);
-        tmpV3.set(Vector3f.UNIT_Z);
-        tmpRot.fromAngles(angles);
-        tmpRot.multLocal(tmpV3);
-        characterControl.setViewDirection(tmpV3);
+    private void handleViewToggle(boolean isPressed) {
+        if (isPressed) {
+            publish(EngineEventTopics.PLAYER_CAMERA_VIEW_TOGGLE_REQUESTED, Map.of("playerRef", playerRef));
+        }
+    }
+
+    private void clampCameraPitch() {
+        angles[0] = FastMath.clamp(angles[0], MIN_CAMERA_PITCH, MAX_CAMERA_PITCH);
+    }
+
+    private float headPitch() {
+        return FastMath.clamp(angles[0], MIN_HEAD_PITCH, MAX_HEAD_PITCH);
+    }
+
+    private float headYaw() {
+        return FastMath.clamp(angles[1], -MAX_HEAD_YAW, MAX_HEAD_YAW);
+    }
+
+    private void publishHeadTurnRequested(String binding, float value, float tpf) {
+        float pitch = headPitch();
+        float yaw = headYaw();
+        publishLive(EngineEventTopics.PLAYER_HEAD_TURN_REQUESTED, Map.of(
+                "playerRef", playerRef,
+                "binding", binding,
+                "delta", value,
+                "pitch", pitch,
+                "yaw", yaw,
+                "pitchDegrees", pitch * FastMath.RAD_TO_DEG,
+                "yawDegrees", yaw * FastMath.RAD_TO_DEG,
+                "cameraPitch", angles[0],
+                "cameraYaw", angles[1],
+                "tpf", tpf
+        ));
     }
 
     private void publishLookIntent(String binding, float value) {
@@ -303,7 +364,9 @@ public class UserInputHandler extends UserInputAbstract {
                 "binding", binding,
                 "value", value,
                 "pitch", angles[0],
-                "yaw", angles[1]
+                "yaw", angles[1],
+                "pitchDegrees", angles[0] * FastMath.RAD_TO_DEG,
+                "yawDegrees", angles[1] * FastMath.RAD_TO_DEG
         ));
     }
 
@@ -318,17 +381,15 @@ public class UserInputHandler extends UserInputAbstract {
     }
 
     private void updatePlayerState(Vector3f walkDirection, float tpf) {
-        PlayerState next = getPlayerState();
-        if (walkDirection.lengthSquared() == 0 && getCurrentSpeed() == getWalkSpeed()) {
+        PlayerState next;
+        if (!characterControl.isOnGround()) {
+            next = PlayerState.FLYING;
+        } else if (walkDirection.lengthSquared() == 0f) {
             next = PlayerState.STANDING;
-        } else if (walkDirection.lengthSquared() > 0) {
-            if (!characterControl.isOnGround() && Math.abs(getPlayerDistanceAboveGround(spatial)) <= 1) {
-                next = PlayerState.FLYING;
-            } else if (getCurrentSpeed() > getWalkSpeed()) {
-                next = PlayerState.SPRINTING;
-            } else {
-                next = PlayerState.WALKING;
-            }
+        } else if (isRunning() || getCurrentSpeed() > getWalkSpeed()) {
+            next = PlayerState.SPRINTING;
+        } else {
+            next = PlayerState.WALKING;
         }
         transitionPlayerState(next, tpf);
     }
@@ -403,11 +464,13 @@ public class UserInputHandler extends UserInputAbstract {
         close(moveIntentSubscription);
         close(cameraLookInputSubscription);
         close(consoleVisibilitySubscription);
+        close(playerInputEnabledSubscription);
         actionSubscription = null;
         analogSubscription = null;
         moveIntentSubscription = null;
         cameraLookInputSubscription = null;
         consoleVisibilitySubscription = null;
+        playerInputEnabledSubscription = null;
     }
 
     private void close(AutoCloseable subscription) {

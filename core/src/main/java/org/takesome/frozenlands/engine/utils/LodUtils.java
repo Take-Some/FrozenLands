@@ -10,18 +10,33 @@ public class LodUtils {
     private LodUtils() {}
 
     public static void setUpTreeModelLod(Spatial model) {
-        //Structure specific just for "Models/Fir1/fir1_androlo.j3o"!
-        ((Node) ((Node) model).getChild(0)).getChildren().forEach(geometry -> {
-            createModelLod(geometry);
-        });
+        setUpModelLod(model);
     }
 
     public static void setUpCharacterModelLod(Spatial model) {
-        Geometry geometry = (Geometry) ((Node) model).getChild(0);
-        createModelLod(geometry);
+        setUpModelLod(model);
     }
-    private static void createModelLod(Spatial geometry) {
-        LodGenerator lod = new LodGenerator((Geometry) geometry);
+
+    public static void setUpModelLod(Spatial model) {
+        if (model == null) {
+            return;
+        }
+        if (model instanceof Geometry geometry) {
+            createModelLod(geometry);
+            return;
+        }
+        if (model instanceof Node node) {
+            for (Spatial child : node.getChildren()) {
+                setUpModelLod(child);
+            }
+        }
+    }
+
+    private static void createModelLod(Geometry geometry) {
+        if (geometry.getControl(LodControl.class) != null) {
+            return;
+        }
+        LodGenerator lod = new LodGenerator(geometry);
         lod.bakeLods(LodGenerator.TriangleReductionMethod.COLLAPSE_COST, 0.25f, 0.5f, 0.75f);
         LodControl lc = new LodControl();
         geometry.addControl(lc);
