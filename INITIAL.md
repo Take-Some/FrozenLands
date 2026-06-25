@@ -2,7 +2,7 @@
 
 > Первичное техническое описание репозитория `FrozenLands-main` и его локальной зависимости `SkySimulation`.
 >
-> Состояние зафиксировано по структуре и файлам проекта на `2026-06-25`: `build.gradle`, `settings.gradle`, `src/main/java`, `src/main/resources`, `modulesSrc`, `SkySimulation/README.md`, `SkySimulation/build.gradle`, `SkySimulation/common.gradle`, `SkySimulation/SkyLibrary/build.gradle`.
+> Состояние обновлено по структуре Gradle multi-project на `2026-06-25`: `settings.gradle`, `build.gradle`, `core/build.gradle`, `desktop/build.gradle`, `core/src/main/java`, `core/src/main/resources`, `desktop/src/main/java`, `modulesSrc`, `SkySimulation/README.md`, `SkySimulation/build.gradle`, `SkySimulation/common.gradle`, `SkySimulation/SkyLibrary/build.gradle`.
 
 ---
 
@@ -10,16 +10,23 @@
 
 `FrozenLands-main` — Java / jMonkeyEngine 3D game-runtime prototype с рабочим именем **FrozenLands**.
 
-Проект сейчас устроен как Gradle application-проект с точкой входа:
+Проект сейчас устроен как Gradle multi-project build с двумя Gradle-модулями:
 
 ```text
-org.takesome.frozenlands.FrozenLands
+:core      # engine/runtime/game logic + resources
+:desktop   # desktop launcher/application entrypoint
+```
+
+Точка входа desktop-модуля:
+
+```text
+org.takesome.frozenlands.desktop.DesktopLauncher
 ```
 
 Внутреннее имя Gradle-проекта:
 
 ```text
-rootProject.name = 'NewGame'
+rootProject.name = 'FrozenLands'
 ```
 
 Основная роль репозитория:
@@ -79,7 +86,7 @@ flowchart TD
 
 1. `FrozenLands.main()` создаёт `AppSettings`, выставляет resolution `2560x1440`, samples `16`, title `FrozenLands`.
 2. `simpleInitApp()`:
-   - регистрирует `src/main/resources` и asset roots из `modulesSrc/**/module.index.json`;
+   - регистрирует `core/src/main/resources` и asset roots из `core/module.index.json` / `modulesSrc/*/module.index.json`;
    - читает bootstrap-конфиг `userInput`;
    - инициализирует Lemur GUI;
    - создаёт `BulletAppState`;
@@ -98,16 +105,17 @@ flowchart TD
 
 | Путь | Назначение |
 |---|---|
-| `src/main/java/org/takesome/frozenlands` | Основной Java-код приложения и базового engine runtime. |
-| `src/main/resources` | Базовые assets: модели, материалы, шейдеры, текстуры, UI, звуки, темы Lemur, `log4j2.xml`. |
-| `modulesSrc` | Модульная runtime-зона: Java-код модулей, Lua API stubs/events, JSON-конфиги, module index files. |
+| `core/src/main/java/org/takesome/frozenlands` | Основной Java-код engine/runtime/game logic. |
+| `core/src/main/resources` | Базовые assets: модели, материалы, шейдеры, текстуры, UI, звуки, темы Lemur, `log4j2.xml`, core Lua/config resources. |
+| `desktop/src/main/java/org/takesome/frozenlands/desktop` | Desktop launcher и Gradle application entrypoint. |
+| `modulesSrc` | Runtime module catalog: Java-код модулей, Lua API stubs/events, JSON-конфиги, module index files. Это больше не отдельные Gradle subprojects. |
 | `lib` | Локальные библиотеки / binary assets, если используются проектом. |
 | `logs` | Runtime/build logs. |
 | `gradle`, `gradlew`, `gradlew.bat` | Gradle wrapper. |
-| `build.gradle` | Основной Gradle build script приложения. |
-| `settings.gradle` | Имя Gradle root project: `NewGame`. |
+| `build.gradle` | Root Gradle build script: общие repositories, JME pinning, alias `run -> :desktop:run`. |
+| `settings.gradle` | Gradle root project `FrozenLands`; includes only `core` and `desktop`. |
 
-В `src/main/resources` сейчас присутствуют ассеты следующих типов:
+В `core/src/main/resources` сейчас присутствуют ассеты следующих типов:
 
 ```text
 Models, MatDefs, sounds, textures, themes, ui
@@ -121,7 +129,7 @@ png, ogg, jpg, json, j3m, dds, glb, j3o, shader files, xml/groovy configs
 Модули объявляются через файлы:
 
 ```text
-modulesSrc/**/module.index.json
+core/module.index.json and modulesSrc/*/module.index.json
 ```
 
 `ModuleIndexCatalog` сканирует `modulesSrc`, читает каждый `module.index.json` и предоставляет:
@@ -239,22 +247,29 @@ gradlew.bat packageLocal
 ```bat
 cd C:\Users\Aiden\Documents\Repos\FrozenLands-main
 gradlew.bat run
+REM or explicitly:
+gradlew.bat :desktop:run
 ```
 
 ---
 
 ## 8. Главные Gradle-зависимости FrozenLands
 
-`FrozenLands-main/build.gradle` использует:
+`FrozenLands-main` теперь использует root `build.gradle` + module scripts:
 
 ```gradle
+// settings.gradle
+rootProject.name = 'FrozenLands'
+include 'core'
+include 'desktop'
+
+// desktop/build.gradle
 plugins {
     id 'application'
-    id 'java'
 }
 
 application {
-    mainClass = 'org.takesome.frozenlands.FrozenLands'
+    mainClass = 'org.takesome.frozenlands.desktop.DesktopLauncher'
 }
 ```
 
@@ -372,7 +387,7 @@ frozenlands.runtimeManifestExit=true
 Минимальный шаблон нового модуля:
 
 ```text
-modulesSrc/engine/modules/<module-name>/
+modulesSrc/<module-name>/
   module.index.json
   lua/api.lua
   lua/events.lua
@@ -406,11 +421,11 @@ modulesSrc/engine/modules/<module-name>/
 src/main/java
 ```
 
-Это работает через logic в `FrozenLands-main/build.gradle`:
+Это работает через logic в `FrozenLands-main/core/build.gradle`:
 
 ```gradle
 java.srcDirs = [file('src/main/java')] + moduleJavaSourceDirs
-resources.srcDirs = [file('src/main/resources')] + moduleResourceDirs
+resources.srcDirs = [file('src/main/resources')]
 ```
 
 ---
@@ -437,6 +452,8 @@ gradlew.bat packageLocal
 REM 2) Запустить FrozenLands
 cd C:\Users\Aiden\Documents\Repos\FrozenLands-main
 gradlew.bat run
+REM or explicitly:
+gradlew.bat :desktop:run
 ```
 
 Если dependency не находится, проверить:

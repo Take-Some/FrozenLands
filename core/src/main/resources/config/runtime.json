@@ -1,0 +1,18 @@
+{
+  "scripting": {
+    "enabled": true,
+    "scriptRoots": [
+      "src/main/resources/scripts/lua"
+    ],
+    "entrypoints": [
+      "startup.lua"
+    ],
+    "autoRun": [
+      "startup.lua"
+    ]
+  },
+  "console": {
+    "enabled": false,
+    "syntax": "<moduleId> <commandId> [jsonArgs]"
+  }
+}

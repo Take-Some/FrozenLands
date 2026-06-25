@@ -1,0 +1,30 @@
+{
+  "schema": "frozenlands.module.index.v1",
+  "module": "player",
+  "modulePath": "modulesSrc/player",
+  "id": "engine.player",
+  "type": "runtime",
+  "description": "Player runtime module: movement, look, physics and HUD API.",
+  "project": {
+    "id": "takesome.frozenlands",
+    "name": "Take Some() Frozen Lands",
+    "projectModule": true,
+    "moduleRole": "runtime",
+    "moduleLayer": "runtime",
+    "sourceRoot": "modulesSrc/player"
+  },
+  "lua": {
+    "api": "src/main/resources/scripts/lua/api.lua",
+    "events": "src/main/resources/scripts/lua/events.lua",
+    "usage": "local m = require('engine.player'); m.call('status', {})"
+  },
+  "runtime": {
+    "configs": {
+      "runtime": "src/main/resources/config/runtime.json",
+      "playerOptions": "src/main/resources/config/player.json"
+    },
+    "assetRoots": [
+      "src/main/resources"
+    ]
+  }
+}

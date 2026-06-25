@@ -1,0 +1,30 @@
+{
+  "schema": "frozenlands.module.index.v1",
+  "module": "provider-material",
+  "modulePath": "modulesSrc/provider-material",
+  "id": "engine.material",
+  "type": "provider",
+  "entrypoint": "org.takesome.frozenlands.engine.providers.material.MaterialProvider",
+  "description": "Material provider module. Java executes material loading; Lua calls module commands through java.callModule.",
+  "project": {
+    "id": "takesome.frozenlands",
+    "name": "Take Some() Frozen Lands",
+    "projectModule": true,
+    "moduleRole": "provider",
+    "moduleLayer": "providers",
+    "sourceRoot": "modulesSrc/provider-material"
+  },
+  "lua": {
+    "api": "src/main/resources/scripts/lua/api.lua",
+    "events": "src/main/resources/scripts/lua/events.lua",
+    "usage": "local material = require('engine.material'); material.call('list', {})"
+  },
+  "runtime": {
+    "configs": {
+      "materials": "src/main/resources/config/materials.json"
+    },
+    "assetRoots": [
+      "src/main/resources"
+    ]
+  }
+}

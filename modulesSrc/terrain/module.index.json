@@ -1,0 +1,29 @@
+{
+  "schema": "frozenlands.module.index.v1",
+  "module": "terrain",
+  "modulePath": "modulesSrc/terrain",
+  "id": "engine.terrain",
+  "type": "runtime",
+  "description": "Terrain runtime module: chunks, height, spawn and terrain config.",
+  "project": {
+    "id": "takesome.frozenlands",
+    "name": "Take Some() Frozen Lands",
+    "projectModule": true,
+    "moduleRole": "runtime",
+    "moduleLayer": "runtime",
+    "sourceRoot": "modulesSrc/terrain"
+  },
+  "lua": {
+    "api": "src/main/resources/scripts/lua/api.lua",
+    "events": "src/main/resources/scripts/lua/events.lua",
+    "usage": "local m = require('engine.terrain'); m.call('status', {})"
+  },
+  "runtime": {
+    "configs": {
+      "runtime": "src/main/resources/config/runtime.json"
+    },
+    "assetRoots": [
+      "src/main/resources"
+    ]
+  }
+}

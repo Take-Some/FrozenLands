@@ -1,0 +1,141 @@
+{
+  "schema": "frozenlands.project.index.v1",
+  "id": "takesome.frozenlands",
+  "name": "Take Some() Frozen Lands",
+  "type": "game",
+  "description": "Take Some() Frozen Lands game project and runtime module catalog.",
+  "entrypoint": "org.takesome.frozenlands.desktop.DesktopLauncher",
+  "namespace": "org.takesome.frozenlands",
+  "sourceRoots": {
+    "core": "core/src",
+    "coreJava": "core/src/main/java",
+    "coreResources": "core/src/main/resources",
+    "scripts": "core/src/main/resources/scripts/lua",
+    "modules": "modulesSrc",
+    "desktop": "desktop/src",
+    "desktopJava": "desktop/src/main/java"
+  },
+  "moduleCatalog": [
+    "core/module.index.json",
+    "modulesSrc/*/module.index.json"
+  ],
+  "modules": [
+    {
+      "id": "engine.core",
+      "module": "core",
+      "modulePath": "core",
+      "type": "core",
+      "role": "core",
+      "layer": "core",
+      "sourceRoot": "core"
+    },
+    {
+      "id": "app.desktop",
+      "module": "desktop",
+      "modulePath": "desktop",
+      "type": "application",
+      "role": "desktop-launcher",
+      "layer": "app",
+      "sourceRoot": "desktop"
+    },
+    {
+      "id": "engine.bootstrap",
+      "module": "bootstrap",
+      "modulePath": "modulesSrc/bootstrap",
+      "type": "bootstrap",
+      "role": "bootstrap",
+      "layer": "bootstrap",
+      "sourceRoot": "modulesSrc/bootstrap"
+    },
+    {
+      "id": "engine.particles",
+      "module": "particles",
+      "modulePath": "modulesSrc/particles",
+      "type": "runtime",
+      "role": "runtime",
+      "layer": "runtime",
+      "sourceRoot": "modulesSrc/particles"
+    },
+    {
+      "id": "engine.player",
+      "module": "player",
+      "modulePath": "modulesSrc/player",
+      "type": "runtime",
+      "role": "runtime",
+      "layer": "runtime",
+      "sourceRoot": "modulesSrc/player"
+    },
+    {
+      "id": "engine.providers",
+      "module": "provider-core",
+      "modulePath": "modulesSrc/provider-core",
+      "type": "provider-core",
+      "role": "provider-registry",
+      "layer": "providers",
+      "sourceRoot": "modulesSrc/provider-core"
+    },
+    {
+      "id": "engine.material",
+      "module": "provider-material",
+      "modulePath": "modulesSrc/provider-material",
+      "type": "provider",
+      "role": "provider",
+      "layer": "providers",
+      "sourceRoot": "modulesSrc/provider-material"
+    },
+    {
+      "id": "engine.model",
+      "module": "provider-model",
+      "modulePath": "modulesSrc/provider-model",
+      "type": "provider",
+      "role": "provider",
+      "layer": "providers",
+      "sourceRoot": "modulesSrc/provider-model"
+    },
+    {
+      "id": "engine.sound",
+      "module": "provider-sound",
+      "modulePath": "modulesSrc/provider-sound",
+      "type": "provider",
+      "role": "provider",
+      "layer": "providers",
+      "sourceRoot": "modulesSrc/provider-sound"
+    },
+    {
+      "id": "engine.save",
+      "module": "save",
+      "modulePath": "modulesSrc/save",
+      "type": "runtime",
+      "role": "runtime",
+      "layer": "runtime",
+      "sourceRoot": "modulesSrc/save"
+    },
+    {
+      "id": "engine.shaders",
+      "module": "shaders",
+      "modulePath": "modulesSrc/shaders",
+      "type": "runtime",
+      "role": "runtime",
+      "layer": "runtime",
+      "sourceRoot": "modulesSrc/shaders"
+    },
+    {
+      "id": "engine.terrain",
+      "module": "terrain",
+      "modulePath": "modulesSrc/terrain",
+      "type": "runtime",
+      "role": "runtime",
+      "layer": "runtime",
+      "sourceRoot": "modulesSrc/terrain"
+    },
+    {
+      "id": "engine.world",
+      "module": "world",
+      "modulePath": "modulesSrc/world",
+      "type": "runtime",
+      "role": "runtime",
+      "layer": "runtime",
+      "sourceRoot": "modulesSrc/world"
+    }
+  ]
+}

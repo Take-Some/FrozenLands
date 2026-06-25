@@ -1,0 +1,31 @@
+{
+  "schema": "frozenlands.module.index.v1",
+  "module": "provider-sound",
+  "modulePath": "modulesSrc/provider-sound",
+  "id": "engine.sound",
+  "type": "provider",
+  "entrypoint": "org.takesome.frozenlands.engine.providers.sound.SoundProvider",
+  "description": "Sound provider module. Java executes audio node loading and playback; Lua calls module commands through java.callModule.",
+  "project": {
+    "id": "takesome.frozenlands",
+    "name": "Take Some() Frozen Lands",
+    "projectModule": true,
+    "moduleRole": "provider",
+    "moduleLayer": "providers",
+    "sourceRoot": "modulesSrc/provider-sound"
+  },
+  "lua": {
+    "api": "src/main/resources/scripts/lua/api.lua",
+    "events": "src/main/resources/scripts/lua/events.lua",
+    "usage": "local sound = require('engine.sound'); sound.call('play', { block = 'player', event = 'spawn' })"
+  },
+  "runtime": {
+    "configs": {
+      "sounds": "src/main/resources/config/sounds.json",
+      "internalSounds": "src/main/resources/config/internal/sounds.json"
+    },
+    "assetRoots": [
+      "src/main/resources"
+    ]
+  }
+}

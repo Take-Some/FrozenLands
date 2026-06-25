@@ -1,0 +1,29 @@
+{
+  "schema": "frozenlands.module.index.v1",
+  "module": "shaders",
+  "modulePath": "modulesSrc/shaders",
+  "id": "engine.shaders",
+  "type": "runtime",
+  "description": "Shader runtime module: post-processing and shadow settings.",
+  "project": {
+    "id": "takesome.frozenlands",
+    "name": "Take Some() Frozen Lands",
+    "projectModule": true,
+    "moduleRole": "runtime",
+    "moduleLayer": "runtime",
+    "sourceRoot": "modulesSrc/shaders"
+  },
+  "lua": {
+    "api": "src/main/resources/scripts/lua/api.lua",
+    "events": "src/main/resources/scripts/lua/events.lua",
+    "usage": "local m = require('engine.shaders'); m.call('status', {})"
+  },
+  "runtime": {
+    "configs": {
+      "runtime": "src/main/resources/config/runtime.json"
+    },
+    "assetRoots": [
+      "src/main/resources"
+    ]
+  }
+}

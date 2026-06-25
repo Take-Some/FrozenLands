@@ -1,0 +1,29 @@
+{
+  "schema": "frozenlands.module.index.v1",
+  "module": "bootstrap",
+  "modulePath": "modulesSrc/bootstrap",
+  "id": "engine.bootstrap",
+  "type": "bootstrap",
+  "description": "Bootstrap configuration module. Provides mutable startup config such as user input mappings.",
+  "project": {
+    "id": "takesome.frozenlands",
+    "name": "Take Some() Frozen Lands",
+    "projectModule": true,
+    "moduleRole": "bootstrap",
+    "moduleLayer": "bootstrap",
+    "sourceRoot": "modulesSrc/bootstrap"
+  },
+  "lua": {
+    "api": "src/main/resources/scripts/lua/api.lua",
+    "events": "src/main/resources/scripts/lua/events.lua",
+    "usage": "Bootstrap module is loaded by Java during application startup."
+  },
+  "runtime": {
+    "configs": {
+      "userInput": "src/main/resources/config/userInput.json"
+    },
+    "assetRoots": [
+      "src/main/resources"
+    ]
+  }
+}

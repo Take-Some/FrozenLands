@@ -1,0 +1,29 @@
+{
+  "schema": "frozenlands.module.index.v1",
+  "module": "world",
+  "modulePath": "modulesSrc/world",
+  "id": "engine.world",
+  "type": "runtime",
+  "description": "World runtime module: spawn/world state API.",
+  "project": {
+    "id": "takesome.frozenlands",
+    "name": "Take Some() Frozen Lands",
+    "projectModule": true,
+    "moduleRole": "runtime",
+    "moduleLayer": "runtime",
+    "sourceRoot": "modulesSrc/world"
+  },
+  "lua": {
+    "api": "src/main/resources/scripts/lua/api.lua",
+    "events": "src/main/resources/scripts/lua/events.lua",
+    "usage": "local m = require('engine.world'); m.call('status', {})"
+  },
+  "runtime": {
+    "configs": {
+      "runtime": "src/main/resources/config/runtime.json"
+    },
+    "assetRoots": [
+      "src/main/resources"
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "schema": "frozenlands.module.index.v1",
+  "module": "provider-core",
+  "modulePath": "modulesSrc/provider-core",
+  "id": "engine.providers",
+  "type": "provider-core",
+  "entrypoint": "org.takesome.frozenlands.engine.providers.EngineProviders",
+  "description": "Provider registry and provider command/event ABI. Java hosts provider execution; Lua uses provider modules through java.callModule.",
+  "project": {
+    "id": "takesome.frozenlands",
+    "name": "Take Some() Frozen Lands",
+    "projectModule": true,
+    "moduleRole": "provider-registry",
+    "moduleLayer": "providers",
+    "sourceRoot": "modulesSrc/provider-core"
+  },
+  "lua": {
+    "api": "src/main/resources/scripts/lua/api.lua",
+    "events": "src/main/resources/scripts/lua/events.lua",
+    "usage": "Use engine.sound, engine.material and engine.model provider modules for concrete commands."
+  },
+  "runtime": {
+    "configs": {},
+    "assetRoots": [
+      "src/main/resources"
+    ]
+  }
+}

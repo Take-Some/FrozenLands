@@ -1,0 +1,29 @@
+{
+  "schema": "frozenlands.module.index.v1",
+  "module": "particles",
+  "modulePath": "modulesSrc/particles",
+  "id": "engine.particles",
+  "type": "runtime",
+  "description": "Particle runtime module: snow, emit and impact effects.",
+  "project": {
+    "id": "takesome.frozenlands",
+    "name": "Take Some() Frozen Lands",
+    "projectModule": true,
+    "moduleRole": "runtime",
+    "moduleLayer": "runtime",
+    "sourceRoot": "modulesSrc/particles"
+  },
+  "lua": {
+    "api": "src/main/resources/scripts/lua/api.lua",
+    "events": "src/main/resources/scripts/lua/events.lua",
+    "usage": "local m = require('engine.particles'); m.call('status', {})"
+  },
+  "runtime": {
+    "configs": {
+      "runtime": "src/main/resources/config/runtime.json"
+    },
+    "assetRoots": [
+      "src/main/resources"
+    ]
+  }
+}

@@ -74,7 +74,7 @@ The codebase changes quickly. Public releases, packaging, and stable modding con
 ├── build.gradle
 ├── settings.gradle
 ├── gradlew / gradlew.bat
-├── src/main/java/org/takesome/frozenlands
+├── core/src/main/java/org/takesome/frozenlands
 │   ├── FrozenLands.java
 │   └── engine
 │       ├── Kernel.java
@@ -85,14 +85,14 @@ The codebase changes quickly. Public releases, packaging, and stable modding con
 │       ├── modules
 │       ├── resources
 │       └── world
-├── src/main/resources
+├── assets/src/main/resources
 │   ├── Models
 │   ├── MatDefs
 │   ├── sounds
 │   ├── textures
 │   ├── themes
 │   └── ui
-└── modulesSrc/engine/modules
+└── modulesSrc
     ├── bootstrap
     ├── core
     ├── particles
@@ -149,13 +149,13 @@ engine.core script.autorun
 Default script config:
 
 ```text
-modulesSrc/engine/modules/core/assets/config/runtime.json
+modulesSrc/core/assets/config/runtime.json
 ```
 
 Default startup script:
 
 ```text
-modulesSrc/engine/modules/core/assets/scripts/startup.lua
+modulesSrc/core/assets/scripts/startup.lua
 ```
 
 Example:

@@ -1,82 +1,37 @@
 plugins {
-    id 'application'
-    id 'java'
+    id 'base'
 }
 
-group = 'org.takesome'
-version = '1.0-SNAPSHOT'
+allprojects {
+    group = 'org.takesome'
+    version = '1.0-SNAPSHOT'
 
-application {
-    mainClass = 'org.takesome.frozenlands.FrozenLands'
-}
-
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8'
-}
-
-def modulesSrcDir = file('modulesSrc')
-def moduleIndexFiles = modulesSrcDir.exists() ? fileTree(modulesSrcDir) { include '**/module.index.json' }.files : []
-def moduleDirs = moduleIndexFiles.collect { it.parentFile }.unique()
-def moduleJavaSourceDirs = moduleDirs.collect { new File(it as File, 'src/main/java') }.findAll { it.exists() }
-def moduleResourceDirs = moduleDirs.collect { new File(it as File, 'src/main/resources') }.findAll { it.exists() }
-
-sourceSets {
-    main {
-        java.srcDirs = [file('src/main/java')] + moduleJavaSourceDirs
-        resources.srcDirs = [file('src/main/resources')] + moduleResourceDirs
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven { url = uri('https://jitpack.io') }
     }
 }
 
-repositories {
-    
-    mavenLocal()
-    mavenCentral()
-    maven { url = uri('https://jitpack.io') }
-}
+subprojects { subproject ->
+    plugins.withType(JavaPlugin).configureEach {
+        tasks.withType(JavaCompile).configureEach {
+            options.encoding = 'UTF-8'
+        }
+    }
 
-
-configurations.configureEach {
-    resolutionStrategy.eachDependency { details ->
-        if (details.requested.group == 'org.jmonkeyengine') {
-            details.useVersion '3.9.0-stable'
+    configurations.configureEach {
+        resolutionStrategy.eachDependency { details ->
+            if (details.requested.group == 'org.jmonkeyengine') {
+                details.useVersion '3.9.0-stable'
+                details.because 'FrozenLands pins the JME runtime line to 3.9.0-stable.'
+            }
         }
     }
 }
 
-dependencies {
-    def jmeVersion = '3.9.0-stable'
-
-    // jMonkeyEngine
-    implementation "org.jmonkeyengine:jme3-core:$jmeVersion"
-    implementation "org.jmonkeyengine:jme3-desktop:$jmeVersion"
-    implementation "org.jmonkeyengine:jme3-lwjgl3:$jmeVersion"
-    implementation "org.jmonkeyengine:jme3-awt-dialogs:$jmeVersion"
-    implementation "org.jmonkeyengine:jme3-plugins:$jmeVersion"
-    implementation "org.jmonkeyengine:jme3-terrain:$jmeVersion"
-    implementation "org.jmonkeyengine:jme3-effects:$jmeVersion"
-    implementation "org.jmonkeyengine:jme3-jogg:$jmeVersion"
-
-    // jME ecosystem
-    implementation 'com.github.stephengold:Minie:8.2.0'
-    implementation 'dev.takesome:sky-simulation:1.0.0-SNAPSHOT'
-    implementation 'com.github.stephengold:Heart:9.2.0'
-
-    // UI / ECS / generation
-    implementation 'com.simsilica:lemur:1.16.0'
-    implementation 'com.simsilica:lemur-proto:1.13.0'
-    implementation 'com.simsilica:sio2:1.8.0'
-    implementation 'com.simsilica:zay-es:1.6.0'
-    implementation 'com.sudoplay.joise:joise:1.1.0'
-
-    // Parsers / serialization / scripting
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.22.0'
-    implementation 'com.google.code.gson:gson:2.14.0'
-    implementation 'xpp3:xpp3:1.1.4c'
-    implementation 'org.luaj:luaj-jse:3.0.1'
-
-    // Logging
-    implementation 'org.apache.logging.log4j:log4j-core:2.26.0'
-    implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.26.0'
-
-    runtimeOnly 'org.codehaus.groovy:groovy-all:3.0.25'
+tasks.register('run') {
+    group = 'application'
+    description = 'Runs the desktop FrozenLands application.'
+    dependsOn ':desktop:run'
 }

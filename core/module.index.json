@@ -1,0 +1,29 @@
+{
+  "schema": "frozenlands.module.index.v1",
+  "module": "core",
+  "modulePath": "core",
+  "id": "engine.core",
+  "type": "core",
+  "description": "Core Lua bridge, scripting support and future console entrypoint.",
+  "project": {
+    "id": "takesome.frozenlands",
+    "name": "Take Some() Frozen Lands",
+    "projectModule": true,
+    "moduleRole": "core",
+    "moduleLayer": "core",
+    "sourceRoot": "core"
+  },
+  "lua": {
+    "api": "src/main/resources/scripts/lua/api.lua",
+    "events": "src/main/resources/scripts/lua/events.lua",
+    "usage": "local core = require('engine.core'); core.module('engine.particles').call('status', {})"
+  },
+  "runtime": {
+    "configs": {
+      "runtime": "src/main/resources/config/runtime.json"
+    },
+    "assetRoots": [
+      "src/main/resources"
+    ]
+  }
+}

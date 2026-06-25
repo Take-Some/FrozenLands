@@ -1,2 +1,4 @@
-rootProject.name = 'NewGame'
+rootProject.name = 'FrozenLands'
 
+include 'core'
+include 'desktop'
