@@ -13,6 +13,7 @@ import com.jme3.scene.Node;
 import org.takesome.frozenlands.FrozenLands;
 import org.takesome.frozenlands.engine.bootstrap.WorldBootstrap;
 import org.takesome.frozenlands.engine.core.CoreModule;
+import org.takesome.frozenlands.engine.icons.IcoParserModule;
 import org.takesome.frozenlands.engine.lua.RuntimeManifestReporter;
 import org.takesome.frozenlands.engine.modules.EngineModule;
 import org.takesome.frozenlands.engine.modules.ModuleRegistry;
@@ -112,6 +113,7 @@ public class Kernel extends BaseAppState implements EngineContext {
         this.moduleRegistry.register(new PlayerModule(this), this);
         this.saveManager = new SaveManager(this);
         this.moduleRegistry.register(new SaveModule(saveManager), this);
+        this.moduleRegistry.register(new IcoParserModule(), this);
         runCoreAutoRunScripts();
         RuntimeManifestReporter.reportIfRequested(this);
         if (Boolean.getBoolean("frozenlands.runtimeManifestExit")) {

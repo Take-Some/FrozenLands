@@ -137,6 +137,7 @@ public final class ModuleIndexCatalog {
 
     private void loadIndexes() {
         loadIndex(projectRoot.resolve("core"));
+        loadIndex(projectRoot.resolve("assets"));
 
         Path modulesRoot = projectRoot.resolve("modulesSrc");
         if (!Files.isDirectory(modulesRoot)) {

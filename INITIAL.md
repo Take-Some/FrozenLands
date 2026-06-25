@@ -86,7 +86,7 @@ flowchart TD
 
 1. `FrozenLands.main()` создаёт `AppSettings`, выставляет resolution `2560x1440`, samples `16`, title `FrozenLands`.
 2. `simpleInitApp()`:
-   - регистрирует `core/src/main/resources` и asset roots из `core/module.index.json` / `modulesSrc/*/module.index.json`;
+   - регистрирует asset roots только из `module.index.json`: `core/module.index.json`, `assets/module.index.json`, `modulesSrc/*/module.index.json`;
    - читает bootstrap-конфиг `userInput`;
    - инициализирует Lemur GUI;
    - создаёт `BulletAppState`;
@@ -106,16 +106,17 @@ flowchart TD
 | Путь | Назначение |
 |---|---|
 | `core/src/main/java/org/takesome/frozenlands` | Основной Java-код engine/runtime/game logic. |
-| `core/src/main/resources` | Базовые assets: модели, материалы, шейдеры, текстуры, UI, звуки, темы Lemur, `log4j2.xml`, core Lua/config resources. |
+| `core/src/main/resources` | Внутренние runtime resources: core Lua/config resources, `log4j2.xml`. |
 | `desktop/src/main/java/org/takesome/frozenlands/desktop` | Desktop launcher и Gradle application entrypoint. |
-| `modulesSrc` | Runtime module catalog: Java-код модулей, Lua API stubs/events, JSON-конфиги, module index files. Это больше не отдельные Gradle subprojects. |
+| `assets` | Публичные mutable runtime assets: модели, материалы, шейдеры, текстуры, UI, звуки, `.ico`; не зашиваются в core resources. |
+| `modulesSrc` | Runtime module catalog: Java-код модулей, Lua API stubs/events, JSON-конфиги, module index files. Каждый runtime-модуль имеет собственный `build.gradle` для объявления module-local dependencies. |
 | `lib` | Локальные библиотеки / binary assets, если используются проектом. |
 | `logs` | Runtime/build logs. |
 | `gradle`, `gradlew`, `gradlew.bat` | Gradle wrapper. |
 | `build.gradle` | Root Gradle build script: общие repositories, JME pinning, alias `run -> :desktop:run`. |
-| `settings.gradle` | Gradle root project `FrozenLands`; includes only `core` and `desktop`. |
+| `settings.gradle` | Gradle root project `FrozenLands`; includes `core`, `desktop` and each `modulesSrc/*` runtime module. |
 
-В `core/src/main/resources` сейчас присутствуют ассеты следующих типов:
+В `assets` сейчас присутствуют публичные ассеты следующих типов:
 
 ```text
 Models, MatDefs, sounds, textures, themes, ui
@@ -156,6 +157,7 @@ core/module.index.json and modulesSrc/*/module.index.json
 | `engine.particles` | Particle runtime module: snow, emit и impact effects. |
 | `engine.player` | Player runtime module: movement, look, physics и HUD API. |
 | `engine.save` | Save runtime module: snapshot, save, load, list. |
+| `engine.icoParser` | ICO parser module: decode/inspect ICO files and select best icon frames. |
 
 ### Модульный ABI
 
@@ -289,8 +291,6 @@ maven { url = uri('https://jitpack.io') }
 | Physics | `com.github.stephengold:Minie:8.2.0` |
 | Sky / atmosphere | `dev.takesome:sky-simulation:1.0.0-SNAPSHOT` |
 | Utilities | `com.github.stephengold:Heart:9.2.0` |
-| UI | `com.simsilica:lemur:1.16.0`, `lemur-proto:1.13.0` |
-| ECS / game infra | `sio2:1.8.0`, `zay-es:1.6.0` |
 | Generation | `com.sudoplay.joise:joise:1.1.0` |
 | JSON | `jackson-databind:2.22.0`, `gson:2.14.0` |
 | XML/parser | `xpp3:xpp3:1.1.4c` |
@@ -428,9 +428,32 @@ java.srcDirs = [file('src/main/java')] + moduleJavaSourceDirs
 resources.srcDirs = [file('src/main/resources')]
 ```
 
+
+## Module-local Gradle dependencies
+
+Каждый runtime-модуль под `modulesSrc/<module>` имеет собственный `build.gradle`:
+
+```gradle
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    compileOnly project(':core')
+    testImplementation project(':core')
+
+    // module-local dependencies go here
+    // implementation 'group:artifact:version'
+}
+```
+
+Root `settings.gradle` подключает эти каталоги как Gradle subprojects, а `core/build.gradle` всё ещё включает `modulesSrc/*/src/main/java` в integrated runtime source graph.
+
 ---
 
 ## 13. Первичные operational notes
+
+0. **Legacy UI/ECS stack removed:** old Lemur/Automaton-era dependencies are no longer part of `core`.
 
 1. **Build order важен:** сначала `SkySimulation -> Maven Local`, затем `FrozenLands-main`.
 2. **`mavenLocal()` обязателен** для local snapshot dependency `dev.takesome:sky-simulation:1.0.0-SNAPSHOT`.

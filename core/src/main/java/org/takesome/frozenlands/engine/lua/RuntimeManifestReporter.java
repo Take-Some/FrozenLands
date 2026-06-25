@@ -30,6 +30,7 @@ public final class RuntimeManifestReporter {
         reportModule(modules, "engine.sound", List.of("load", "list.blocks", "list.events", "play"));
         reportModule(modules, "engine.material", List.of("load", "list", "get"));
         reportModule(modules, "engine.model", List.of("load", "list", "detach"));
+        reportModule(modules, "engine.icoParser", List.of("status", "inspect", "best"));
     }
 
     private static void reportModule(Map<?, ?> modules, String id, List<String> requiredCommands) {

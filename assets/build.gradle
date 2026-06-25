@@ -1,0 +1,15 @@
+plugins {
+    id 'base'
+}
+
+tasks.register('validateAssets') {
+    group = 'verification'
+    description = 'Validates that the public FrozenLands assets directory exists.'
+    doLast {
+        if (!project.projectDir.isDirectory()) {
+            throw new GradleException("Public assets directory is missing: ${project.projectDir}")
+        }
+    }
+}
+
+check.dependsOn validateAssets

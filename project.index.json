@@ -13,10 +13,12 @@
     "scripts": "core/src/main/resources/scripts/lua",
     "modules": "modulesSrc",
     "desktop": "desktop/src",
-    "desktopJava": "desktop/src/main/java"
+    "desktopJava": "desktop/src/main/java",
+    "assets": "assets"
   },
   "moduleCatalog": [
     "core/module.index.json",
+    "assets/module.index.json",
     "modulesSrc/*/module.index.json"
   ],
   "modules": [
@@ -28,6 +30,15 @@
       "role": "core",
       "layer": "core",
       "sourceRoot": "core"
+    },
+    {
+      "id": "assets.public",
+      "module": "assets",
+      "modulePath": "assets",
+      "type": "assets",
+      "role": "public-assets",
+      "layer": "assets",
+      "sourceRoot": "assets"
     },
     {
       "id": "app.desktop",
@@ -136,6 +147,15 @@
       "role": "runtime",
       "layer": "runtime",
       "sourceRoot": "modulesSrc/world"
+    },
+    {
+      "id": "engine.icoParser",
+      "module": "ico-parser",
+      "modulePath": "modulesSrc/ico-parser",
+      "type": "runtime",
+      "role": "runtime",
+      "layer": "runtime",
+      "sourceRoot": "modulesSrc/ico-parser"
     }
   ]
 }

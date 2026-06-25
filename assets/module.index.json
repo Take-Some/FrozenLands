@@ -1,0 +1,22 @@
+{
+  "schema": "frozenlands.module.index.v1",
+  "module": "assets",
+  "modulePath": "assets",
+  "id": "assets.public",
+  "type": "assets",
+  "description": "Public mutable runtime assets for FrozenLands. These assets are loaded from the repository-level assets directory and are not hardcoded into core resources.",
+  "project": {
+    "id": "takesome.frozenlands",
+    "name": "Take Some() Frozen Lands",
+    "projectModule": true,
+    "moduleRole": "assets",
+    "moduleLayer": "assets",
+    "sourceRoot": "assets"
+  },
+  "runtime": {
+    "configs": {},
+    "assetRoots": [
+      "."
+    ]
+  }
+}
