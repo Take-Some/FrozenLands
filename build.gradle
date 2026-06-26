@@ -1,3 +1,5 @@
+import groovy.json.JsonSlurper
+
 plugins {
     id 'base'
 }
@@ -54,7 +56,7 @@ tasks.register('validateProjectIndex') {
                 .toSet()
         def expectedProjectNames = (indexedRootProjectNames + modulesFromModuleIndexes).toSet()
 
-        def parsedProjectIndex = new groovy.json.JsonSlurper().parse(projectIndexFile.asFile)
+        def parsedProjectIndex = new JsonSlurper().parse(projectIndexFile.asFile)
         def modulesFromProjectIndex = parsedProjectIndex.modules.collect { moduleEntry -> moduleEntry.module as String }.toSet()
 
         def errors = []
@@ -82,7 +84,7 @@ tasks.register('validateProjectIndex') {
                 }
 
                 def moduleIndexFile = new File(rootDir, "modulesSrc/${moduleName}/module.index.json")
-                def moduleIndex = new groovy.json.JsonSlurper().parse(moduleIndexFile)
+                def moduleIndex = new JsonSlurper().parse(moduleIndexFile)
                 if ((moduleEntry.id as String) != (moduleIndex.id as String)) {
                     errors << "module id mismatch for '${moduleName}': project.index.json='${moduleEntry.id}', module.index.json='${moduleIndex.id}'"
                 }
