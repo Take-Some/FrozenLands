@@ -1,0 +1,37 @@
+[versions]
+jme = "3.9.0-stable"
+minie = "8.2.0"
+heart = "9.3.0"
+skySimulation = "1.4.1"
+jackson = "2.22.0"
+gson = "2.14.0"
+luaj = "3.0.1"
+slf4j = "2.0.17"
+log4j = "2.26.0"
+jansi = "2.4.2"
+
+[libraries]
+jme-core = { module = "org.jmonkeyengine:jme3-core", version.ref = "jme" }
+jme-desktop = { module = "org.jmonkeyengine:jme3-desktop", version.ref = "jme" }
+jme-lwjgl3 = { module = "org.jmonkeyengine:jme3-lwjgl3", version.ref = "jme" }
+jme-awt-dialogs = { module = "org.jmonkeyengine:jme3-awt-dialogs", version.ref = "jme" }
+jme-plugins = { module = "org.jmonkeyengine:jme3-plugins", version.ref = "jme" }
+jme-terrain = { module = "org.jmonkeyengine:jme3-terrain", version.ref = "jme" }
+jme-effects = { module = "org.jmonkeyengine:jme3-effects", version.ref = "jme" }
+jme-jogg = { module = "org.jmonkeyengine:jme3-jogg", version.ref = "jme" }
+
+minie = { module = "com.github.stephengold:Minie", version.ref = "minie" }
+heart = { module = "com.github.stephengold:Heart", version.ref = "heart" }
+sky-simulation = { module = "dev.takesome:sky-simulation", version.ref = "skySimulation" }
+
+jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+luaj-jse = { module = "org.luaj:luaj-jse", version.ref = "luaj" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+slf4j-jul-bridge = { module = "org.slf4j:jul-to-slf4j", version.ref = "slf4j" }
+
+log4j-api = { module = "org.apache.logging.log4j:log4j-api", version.ref = "log4j" }
+log4j-core = { module = "org.apache.logging.log4j:log4j-core", version.ref = "log4j" }
+log4j-slf4j2-impl = { module = "org.apache.logging.log4j:log4j-slf4j2-impl", version.ref = "log4j" }
+
+jansi = { module = "org.fusesource.jansi:jansi", version.ref = "jansi" }

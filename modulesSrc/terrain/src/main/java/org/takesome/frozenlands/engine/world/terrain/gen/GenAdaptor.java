@@ -7,6 +7,7 @@ import org.takesome.frozenlands.engine.world.terrain.TerrainRuntimeSettings;
 import org.takesome.frozenlands.engine.world.terrain.chunk.TerrainChunkTracker;
 import org.takesome.frozenlands.engine.world.terrain.gen.mountains.MountGen;
 import org.takesome.frozenlands.engine.world.terrain.gen.terrain.TerrainGen;
+import org.takesome.frozenlands.engine.player.Player;
 
 public class GenAdaptor {
     private final EngineContext app;
@@ -33,10 +34,11 @@ public class GenAdaptor {
     }
 
     public void update() {
-        if (distantTerrain == null || app.getPlayer() == null) {
+        Player player = app.findService(Player.class).orElse(null);
+        if (distantTerrain == null || player == null) {
             return;
         }
-        Vector3f playerLocation = app.getPlayer().getPlayerPosition();
+        Vector3f playerLocation = player.getPlayerPosition();
         playerLocation.y = settings.mountainHeightOffset();
         distantTerrain.setLocalTranslation(playerLocation);
     }

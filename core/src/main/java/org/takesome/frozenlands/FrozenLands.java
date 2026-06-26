@@ -30,8 +30,6 @@ import org.slf4j.LoggerFactory;
 import org.takesome.frozenlands.engine.Kernel;
 import org.takesome.frozenlands.engine.config.ConfigReader;
 import org.takesome.frozenlands.engine.events.EngineEventTopics;
-import org.takesome.frozenlands.engine.icons.IcoFileParser;
-import org.takesome.frozenlands.engine.icons.selection.IcoImageSelector;
 import org.takesome.frozenlands.engine.resources.ModuleIndexCatalog;
 import org.takesome.frozenlands.logging.LoggingBootstrap;
 
@@ -43,6 +41,8 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
+import org.takesome.frozenlands.engine.host.WindowIconDecoder;
+import java.util.ServiceLoader;
 
 public final class FrozenLands implements Application {
     private static final String WINDOW_ICON_ASSET = "FrozenLands.ico";
@@ -150,18 +150,21 @@ public final class FrozenLands implements Application {
         }
     }
 
+
     private static void setIcon(AppSettings settings) {
-        try {
-            Path iconPath = resolveAssetPath(WINDOW_ICON_ASSET);
-            if (iconPath == null) {
-                return;
+        Path iconPath = resolveAssetPath(WINDOW_ICON_ASSET);
+        if (iconPath == null) {
+            return;
+        }
+        for (WindowIconDecoder decoder : ServiceLoader.load(WindowIconDecoder.class)) {
+            try {
+                BufferedImage[] windowIcons = decoder.decode(iconPath);
+                if (windowIcons != null && windowIcons.length > 0) {
+                    settings.setIcons(windowIcons);
+                    return;
+                }
+            } catch (IOException | RuntimeException ignored) {
             }
-            BufferedImage[] decodedIcons = new IcoFileParser().parse(iconPath);
-            BufferedImage[] windowIcons = IcoImageSelector.pickBestIcons(decodedIcons);
-            if (windowIcons.length > 0) {
-                settings.setIcons(windowIcons);
-            }
-        } catch (IOException | IllegalArgumentException ignored) {
         }
     }
 

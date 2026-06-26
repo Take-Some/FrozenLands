@@ -59,6 +59,15 @@
       "sourceRoot": "modulesSrc/bootstrap"
     },
     {
+      "id": "engine.icoParser",
+      "module": "ico-parser",
+      "modulePath": "modulesSrc/ico-parser",
+      "type": "runtime",
+      "role": "runtime",
+      "layer": "runtime",
+      "sourceRoot": "modulesSrc/ico-parser"
+    },
+    {
       "id": "engine.particles",
       "module": "particles",
       "modulePath": "modulesSrc/particles",
@@ -131,6 +140,15 @@
       "sourceRoot": "modulesSrc/shaders"
     },
     {
+      "id": "engine.sky",
+      "module": "sky",
+      "modulePath": "modulesSrc/sky",
+      "type": "runtime",
+      "role": "runtime",
+      "layer": "runtime",
+      "sourceRoot": "modulesSrc/sky"
+    },
+    {
       "id": "engine.terrain",
       "module": "terrain",
       "modulePath": "modulesSrc/terrain",
@@ -140,6 +158,15 @@
       "sourceRoot": "modulesSrc/terrain"
     },
     {
+      "id": "engine.weather",
+      "module": "weather",
+      "modulePath": "modulesSrc/weather",
+      "type": "runtime",
+      "role": "runtime",
+      "layer": "runtime",
+      "sourceRoot": "modulesSrc/weather"
+    },
+    {
       "id": "engine.world",
       "module": "world",
       "modulePath": "modulesSrc/world",
@@ -147,15 +174,6 @@
       "role": "runtime",
       "layer": "runtime",
       "sourceRoot": "modulesSrc/world"
-    },
-    {
-      "id": "engine.icoParser",
-      "module": "ico-parser",
-      "modulePath": "modulesSrc/ico-parser",
-      "type": "runtime",
-      "role": "runtime",
-      "layer": "runtime",
-      "sourceRoot": "modulesSrc/ico-parser"
     }
   ]
 }

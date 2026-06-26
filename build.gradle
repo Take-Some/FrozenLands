@@ -2,6 +2,7 @@ plugins {
     id 'base'
 }
 
+
 allprojects {
     group = 'org.takesome'
     version = '1.4.2'
@@ -14,20 +15,88 @@ allprojects {
 }
 
 subprojects { subproject ->
-    plugins.withType(JavaPlugin).configureEach {
-        tasks.withType(JavaCompile).configureEach {
-            options.encoding = 'UTF-8'
-        }
-    }
+    apply plugin: 'frozenlands.java-conventions'
 
-    configurations.configureEach {
-        resolutionStrategy.eachDependency { details ->
-            if (details.requested.group == 'org.jmonkeyengine') {
-                details.useVersion '3.9.0-stable'
-                details.because 'FrozenLands pins the JME runtime line to 3.9.0-stable.'
+    plugins.withType(JavaPlugin).configureEach {
+        if (file('module.index.json').isFile()) {
+            tasks.named('processResources') {
+                from(subproject.projectDir) {
+                    include 'module.index.json'
+                    include 'lua/**'
+                    include 'assets/**'
+                }
             }
         }
     }
+}
+
+
+def projectIndexFile = layout.projectDirectory.file('project.index.json')
+def moduleIndexFiles = fileTree(layout.projectDirectory.dir('modulesSrc')) {
+    include '*/module.index.json'
+}
+def configuredProjectNames = subprojects.collect { it.name }.toSet()
+def indexedRootProjectNames = ['assets', 'core', 'desktop'] as Set
+
+tasks.register('validateProjectIndex') {
+    group = 'verification'
+    description = 'Validates that settings.gradle, project.index.json and modulesSrc module indexes are synchronized.'
+
+    inputs.file(projectIndexFile)
+    inputs.files(moduleIndexFiles)
+
+    doLast {
+        def rootDir = layout.projectDirectory.asFile
+        def modulesRoot = new File(rootDir, 'modulesSrc')
+        def modulesFromModuleIndexes = modulesRoot.listFiles()
+                .findAll { dir -> dir.isDirectory() && new File(dir, 'module.index.json').isFile() }
+                .collect { dir -> dir.name }
+                .toSet()
+        def expectedProjectNames = (indexedRootProjectNames + modulesFromModuleIndexes).toSet()
+
+        def parsedProjectIndex = new groovy.json.JsonSlurper().parse(projectIndexFile.asFile)
+        def modulesFromProjectIndex = parsedProjectIndex.modules.collect { moduleEntry -> moduleEntry.module as String }.toSet()
+
+        def errors = []
+        def reportSetDiff = { String leftName, Set left, String rightName, Set right ->
+            def missingFromRight = (left - right).toList().sort()
+            def extraInRight = (right - left).toList().sort()
+            if (!missingFromRight.isEmpty()) {
+                errors << "${rightName} is missing entries from ${leftName}: ${missingFromRight}"
+            }
+            if (!extraInRight.isEmpty()) {
+                errors << "${rightName} has entries not present in ${leftName}: ${extraInRight}"
+            }
+        }
+
+        reportSetDiff('settings.gradle includes', configuredProjectNames, 'module.index catalog', expectedProjectNames)
+        reportSetDiff('module.index catalog', expectedProjectNames, 'project.index.json modules', modulesFromProjectIndex)
+        reportSetDiff('project.index.json modules', modulesFromProjectIndex, 'settings.gradle includes', configuredProjectNames)
+
+        parsedProjectIndex.modules.each { moduleEntry ->
+            def moduleName = moduleEntry.module as String
+            if (modulesFromModuleIndexes.contains(moduleName)) {
+                def expectedModulePath = "modulesSrc/${moduleName}"
+                if ((moduleEntry.modulePath as String) != expectedModulePath) {
+                    errors << "project.index.json module '${moduleName}' has modulePath='${moduleEntry.modulePath}', expected '${expectedModulePath}'"
+                }
+
+                def moduleIndexFile = new File(rootDir, "modulesSrc/${moduleName}/module.index.json")
+                def moduleIndex = new groovy.json.JsonSlurper().parse(moduleIndexFile)
+                if ((moduleEntry.id as String) != (moduleIndex.id as String)) {
+                    errors << "module id mismatch for '${moduleName}': project.index.json='${moduleEntry.id}', module.index.json='${moduleIndex.id}'"
+                }
+            }
+        }
+
+        if (!errors.isEmpty()) {
+            throw new GradleException('Project module index validation failed:\n - ' + errors.join('\n - '))
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('validateProjectIndex')
 }
 
 tasks.register('run') {

@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.takesome.frozenlands.engine.providers.material.MaterialProvider;
 
 public class ModelProvider implements EngineProvider {
     private final EngineContext engineContext;
@@ -67,7 +68,7 @@ public class ModelProvider implements EngineProvider {
         Spatial model = assetManager.loadModel(modelPath);
         model.setName(id);
         if (material != null && !material.isBlank()) {
-            model.setMaterial(engineContext.getMaterialManager().getMaterial(material));
+            model.setMaterial(engineContext.requireService(MaterialProvider.class).getMaterial(material));
         }
         if (attach) {
             rootNode.attachChild(model);

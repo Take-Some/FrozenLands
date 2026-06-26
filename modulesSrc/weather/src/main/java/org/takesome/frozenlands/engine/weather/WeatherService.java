@@ -74,7 +74,7 @@ public final class WeatherService extends BaseAppState {
     }
 
     private void resolveAnchor() {
-        Player player = context.getPlayer();
+        Player player = context.findService(Player.class).orElse(null);
         if (player != null) {
             anchor.set(player.getWorldTranslation());
             return;

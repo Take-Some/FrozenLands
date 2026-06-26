@@ -11,12 +11,10 @@ import org.takesome.frozenlands.engine.world.terrain.TerrainManager;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
 
 public final class SpawnManager extends BaseAppState {
     private final EngineContext context;
     private final TerrainManager terrainManager;
-    private final Consumer<Player> playerConsumer;
     private final float spawnX;
     private final float spawnZ;
     private final float spawnClearance;
@@ -24,10 +22,9 @@ public final class SpawnManager extends BaseAppState {
     private Player player;
     private int framesWaited;
 
-    public SpawnManager(EngineContext context, TerrainManager terrainManager, Consumer<Player> playerConsumer) {
+    public SpawnManager(EngineContext context, TerrainManager terrainManager) {
         this.context = context;
         this.terrainManager = terrainManager;
-        this.playerConsumer = playerConsumer;
 
         LuaRuntimeConfig loader = new LuaRuntimeConfig();
         Map<String, Object> config = loader.read("engine.world");
@@ -104,7 +101,7 @@ public final class SpawnManager extends BaseAppState {
     private void spawn(Vector3f spawnLocation, String reason) {
         player = new Player(context);
         player.addPlayer(context.getCamera(), spawnLocation);
-        playerConsumer.accept(player);
+        context.registerService(Player.class, player);
         context.getModuleRegistry().publishEvent("world.player.spawned", Map.of(
                 "reason", reason,
                 "x", spawnLocation.x,

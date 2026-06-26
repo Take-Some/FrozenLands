@@ -17,7 +17,7 @@ public final class LuaProviderBridge {
     }
 
     public Map<String, Object> exportProviders() {
-        return context.getProviders().luaManifest();
+        return context.getProviderRegistry().luaManifest();
     }
 
     public Map<String, Object> exportModules() {

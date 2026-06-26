@@ -10,49 +10,33 @@ import com.jme3.post.FilterPostProcessor;
 import com.jme3.renderer.Camera;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
+import org.slf4j.Logger;
 import org.takesome.frozenlands.FrozenLands;
 import org.takesome.frozenlands.engine.core.CoreModule;
+import org.takesome.frozenlands.engine.core.LuaEventHookState;
+import org.takesome.frozenlands.engine.core.console.ConsoleCursorPolicyState;
+import org.takesome.frozenlands.engine.core.console.ConsoleInteractionPolicyState;
+import org.takesome.frozenlands.engine.core.console.CoreConsoleState;
 import org.takesome.frozenlands.engine.lua.RuntimeManifestReporter;
 import org.takesome.frozenlands.engine.modules.ModuleRegistry;
-import org.takesome.frozenlands.engine.player.Player;
-import org.takesome.frozenlands.engine.providers.EngineProviders;
 import org.takesome.frozenlands.engine.providers.ProviderRegistry;
-import org.takesome.frozenlands.engine.providers.material.MaterialProvider;
-import org.takesome.frozenlands.engine.providers.model.ModelProvider;
-import org.takesome.frozenlands.engine.providers.sound.SoundProvider;
-import org.takesome.frozenlands.engine.save.SaveManager;
-import org.takesome.frozenlands.engine.shaders.Shaders;
-import org.takesome.frozenlands.engine.world.WorldUpdate;
-import org.takesome.frozenlands.engine.world.sky.Sky;
-import org.takesome.frozenlands.engine.world.spawn.SpawnManager;
-import org.takesome.frozenlands.engine.world.terrain.TerrainManager;
-import org.slf4j.Logger;
+import org.takesome.frozenlands.engine.runtime.EngineRuntimeInstaller;
 
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.ServiceLoader;
 
 public class Kernel extends BaseAppState implements EngineContext {
-
     private final FrozenLands frozenLands;
     private final Logger logger;
     private final Map CONFIG;
-
-
-    private final EngineProviders providers;
     private final ProviderRegistry providerRegistry;
     private final ModuleRegistry moduleRegistry;
     private final CoreModule coreModule;
-    protected final SoundProvider soundProvider;
-    protected final MaterialProvider materialProvider;
-    protected final ModelProvider modelProvider;
-
-    protected final Sky sky;
-    private final TerrainManager terrainManager;
-    private final Shaders shaders;
-    private final WorldUpdate worldUpdate;
-    private final SpawnManager spawnManager;
-    private final SaveManager saveManager;
-    private Player player;
+    private final Map<Class<?>, Object> services = new LinkedHashMap<>();
 
     public Kernel(FrozenLands frozenLands) {
         this.frozenLands = frozenLands;
@@ -62,31 +46,41 @@ public class Kernel extends BaseAppState implements EngineContext {
         this.moduleRegistry = new ModuleRegistry();
         this.coreModule = new CoreModule(this);
 
-        KernelProviderBootstrap.KernelProviderRuntime providerRuntime = new KernelProviderBootstrap(
-                this,
-                providerRegistry,
-                moduleRegistry,
-                coreModule
-        ).boot();
-        this.providers = providerRuntime.providers();
-        this.soundProvider = providerRuntime.soundProvider();
-        this.materialProvider = providerRuntime.materialProvider();
-        this.modelProvider = providerRuntime.modelProvider();
+        registerService(ProviderRegistry.class, providerRegistry);
+        registerService(ModuleRegistry.class, moduleRegistry);
+        registerService(CoreModule.class, coreModule);
 
-        KernelWorldBootstrap.KernelWorldRuntime worldRuntime = new KernelWorldBootstrap(this, frozenLands.getStateManager(), this::setPlayer).boot();
-        this.sky = worldRuntime.sky();
-        this.terrainManager = worldRuntime.terrainManager();
-        this.shaders = worldRuntime.shaders();
-        this.worldUpdate = worldRuntime.worldUpdate();
-        this.spawnManager = worldRuntime.spawnManager();
-
-        KernelModuleInstaller.KernelModuleRuntime moduleRuntime = new KernelModuleInstaller(this, moduleRegistry).install(worldRuntime);
-        this.saveManager = moduleRuntime.saveManager();
+        moduleRegistry.register(coreModule, this);
+        installRuntimeModules();
+        attachCoreAppStates();
         runCoreAutoRunScripts();
         RuntimeManifestReporter.reportIfRequested(this);
         if (Boolean.getBoolean("frozenlands.runtimeManifestExit")) {
             frozenLands.stop();
         }
+    }
+
+    private void installRuntimeModules() {
+        List<EngineRuntimeInstaller> installers = ServiceLoader.load(EngineRuntimeInstaller.class)
+                .stream()
+                .map(ServiceLoader.Provider::get)
+                .sorted(Comparator
+                        .comparingInt(EngineRuntimeInstaller::priority)
+                        .thenComparing(EngineRuntimeInstaller::id)
+                        .thenComparing(installer -> installer.getClass().getName()))
+                .toList();
+
+        for (EngineRuntimeInstaller installer : installers) {
+            logger.info("Installing FrozenLands runtime module: {} [{}]", installer.id(), installer.getClass().getName());
+            installer.install(this);
+        }
+    }
+
+    private void attachCoreAppStates() {
+        appStateManager().attach(new ConsoleInteractionPolicyState(this));
+        appStateManager().attach(new ConsoleCursorPolicyState(this));
+        appStateManager().attach(new CoreConsoleState(this));
+        appStateManager().attach(new LuaEventHookState(this));
     }
 
     private void runCoreAutoRunScripts() {
@@ -141,16 +135,6 @@ public class Kernel extends BaseAppState implements EngineContext {
     }
 
     @Override
-    public SoundProvider getSoundManager() {
-        return soundProvider;
-    }
-
-    @Override
-    public MaterialProvider getMaterialManager() {
-        return materialProvider;
-    }
-
-    @Override
     public Camera getCamera() {
         return frozenLands.getCamera();
     }
@@ -167,21 +151,7 @@ public class Kernel extends BaseAppState implements EngineContext {
 
     @Override
     public Logger getLogger() {
-        return this.logger;
-    }
-
-    private void setPlayer(Player player) {
-        this.player = player;
-    }
-
-    @Override
-    public Player getPlayer() {
-        return player;
-    }
-
-    @Override
-    public Sky getSky() {
-        return sky;
+        return logger;
     }
 
     @Override
@@ -200,11 +170,6 @@ public class Kernel extends BaseAppState implements EngineContext {
     }
 
     @Override
-    public EngineProviders getProviders() {
-        return providers;
-    }
-
-    @Override
     public ProviderRegistry getProviderRegistry() {
         return providerRegistry;
     }
@@ -214,23 +179,22 @@ public class Kernel extends BaseAppState implements EngineContext {
         return moduleRegistry;
     }
 
-    public TerrainManager getTerrainManager() {
-        return terrainManager;
+    @Override
+    public synchronized <T> void registerService(Class<T> serviceType, T service) {
+        if (serviceType == null) {
+            throw new IllegalArgumentException("serviceType must not be null");
+        }
+        if (service == null) {
+            throw new IllegalArgumentException("service must not be null: " + serviceType.getName());
+        }
+        services.put(serviceType, serviceType.cast(service));
     }
 
-    public Shaders getShaders() {
-        return shaders;
-    }
-
-    public WorldUpdate getWorldUpdate() {
-        return worldUpdate;
-    }
-
-    public SpawnManager getSpawnManager() {
-        return spawnManager;
-    }
-
-    public SaveManager getSaveManager() {
-        return saveManager;
+    @Override
+    public synchronized <T> Optional<T> findService(Class<T> serviceType) {
+        if (serviceType == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(services.get(serviceType)).map(serviceType::cast);
     }
 }

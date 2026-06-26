@@ -43,8 +43,8 @@ public final class PlayerModule implements EngineModule {
     }
 
     private Map<String, Object> status() {
-        Map<String, Object> result = result("spawned", context.getPlayer() != null);
-        if (context.getPlayer() != null) {
+        Map<String, Object> result = result("spawned", player() != null);
+        if (player() != null) {
             result.put("hasCharacterControl", characterControl() != null);
             result.putAll(position());
         }
@@ -52,7 +52,7 @@ public final class PlayerModule implements EngineModule {
     }
 
     private Map<String, Object> position() {
-        Player player = context.getPlayer();
+        Player player = player();
         if (player == null) {
             return result("spawned", false);
         }
@@ -80,8 +80,12 @@ public final class PlayerModule implements EngineModule {
     }
 
     private BetterCharacterControl characterControl() {
-        Player player = context.getPlayer();
+        Player player = player();
         return player == null ? null : player.getPlayerOptions().getCharacterControl();
+    }
+
+    private Player player() {
+        return context.findService(Player.class).orElse(null);
     }
 
     private float floatArg(Map<String, Object> args, String name, float fallback) {

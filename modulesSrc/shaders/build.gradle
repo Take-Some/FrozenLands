@@ -1,19 +1,7 @@
 plugins {
-    id 'java-library'
-}
-
-sourceSets {
-    main {
-        java.srcDirs = [file('src/main/java')]
-        resources.srcDirs = [file('src/main/resources')]
-    }
-    test {
-        java.srcDirs = [file('src/test/java')]
-        resources.srcDirs = [file('src/test/resources')]
-    }
+    id 'frozenlands.runtime-module'
 }
 
 dependencies {
-    compileOnly project(':core')
-    testImplementation project(':core')
+    implementation project(':sky')
 }

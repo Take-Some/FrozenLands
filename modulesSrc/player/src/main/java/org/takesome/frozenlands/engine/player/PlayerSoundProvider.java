@@ -13,7 +13,7 @@ public class PlayerSoundProvider extends SoundProvider {
 
     public PlayerSoundProvider(EngineContext kernelInterface) {
         super(kernelInterface);
-        playerSounds = kernelInterface.getSoundManager().getSoundBlock("player");
+        playerSounds = kernelInterface.requireService(SoundProvider.class).getSoundBlock("player");
     }
 
     public void playSound(String sound){

@@ -3,31 +3,14 @@ rootProject.name = 'FrozenLands'
 include 'assets'
 include 'core'
 include 'desktop'
-include 'bootstrap'
-project(':bootstrap').projectDir = file('modulesSrc/bootstrap')
-include 'particles'
-project(':particles').projectDir = file('modulesSrc/particles')
-include 'player'
-project(':player').projectDir = file('modulesSrc/player')
-include 'provider-core'
-project(':provider-core').projectDir = file('modulesSrc/provider-core')
-include 'provider-material'
-project(':provider-material').projectDir = file('modulesSrc/provider-material')
-include 'provider-model'
-project(':provider-model').projectDir = file('modulesSrc/provider-model')
-include 'provider-sound'
-project(':provider-sound').projectDir = file('modulesSrc/provider-sound')
-include 'save'
-project(':save').projectDir = file('modulesSrc/save')
-include 'shaders'
-project(':shaders').projectDir = file('modulesSrc/shaders')
-include 'terrain'
-project(':terrain').projectDir = file('modulesSrc/terrain')
-include 'world'
-project(':world').projectDir = file('modulesSrc/world')
-include 'ico-parser'
-project(':ico-parser').projectDir = file('modulesSrc/ico-parser')
-include 'weather'
-project(':weather').projectDir = file('modulesSrc/weather')
-include 'sky'
-project(':sky').projectDir = file('modulesSrc/sky')
+
+def modulesRoot = file('modulesSrc')
+if (modulesRoot.isDirectory()) {
+    modulesRoot.listFiles()
+            .findAll { dir -> dir.isDirectory() && new File(dir, 'module.index.json').isFile() }
+            .sort { left, right -> left.name <=> right.name }
+            .each { dir ->
+                include dir.name
+                project(":${dir.name}").projectDir = dir
+            }
+}

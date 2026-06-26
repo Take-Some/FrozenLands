@@ -10,6 +10,7 @@ import com.jme3.shadow.DirectionalLightShadowFilter;
 import org.takesome.frozenlands.engine.EngineContext;
 
 import java.util.Map;
+import org.takesome.frozenlands.engine.world.sky.Sky;
 
 public class Shaders extends BaseAppState {
     private final FilterPostProcessor fpp;
@@ -48,7 +49,7 @@ public class Shaders extends BaseAppState {
 
         shadowFilter = new DirectionalLightShadowFilter(assetManager,
                 shadowSettings.getShadowMapSize(), shadowSettings.getSplits());
-        shadowFilter.setLight(kernelInterface.getSky().getSun());
+        shadowFilter.setLight(kernelInterface.requireService(Sky.class).getSun());
         applyShadowFilterSettings();
         fpp.addFilter(shadowFilter);
         fpp.addFilter(new FXAAFilter());

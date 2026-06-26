@@ -10,6 +10,7 @@ import com.jme3.terrain.heightmap.ImageBasedHeightMap;
 import com.jme3.texture.Texture;
 import org.takesome.frozenlands.engine.EngineContext;
 import org.takesome.frozenlands.engine.config.Constants;
+import org.takesome.frozenlands.engine.providers.material.MaterialProvider;
 
 public class MountGen {
 
@@ -23,7 +24,7 @@ public class MountGen {
     }
 
     public TerrainQuad generateMountains() {
-        Material matTerrain = kernelInterface.getMaterialManager().getMaterial("terrain#mount");
+        Material matTerrain = kernelInterface.requireService(MaterialProvider.class).getMaterial("terrain#mount");
 
         AbstractHeightMap heightmap;
         Texture heightMapImage = assetManager.loadTexture("textures/terrain/textures/horizon.png");

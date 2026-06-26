@@ -14,6 +14,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.takesome.frozenlands.engine.player.Player;
 
 public final class SaveManager {
     private static final String SAVE_VERSION = "frozenlands.save.v1";
@@ -36,7 +37,7 @@ public final class SaveManager {
         snapshot.put("version", SAVE_VERSION);
         snapshot.put("savedAt", Instant.now().toString());
         snapshot.put("player", playerSnapshot());
-        snapshot.put("providers", context.getProviders().luaManifest());
+        snapshot.put("providers", context.getProviderRegistry().luaManifest());
         snapshot.put("modules", context.getModuleRegistry().luaManifest());
         snapshot.put("providerEvents", context.getProviderRegistry().getEventBus().snapshot());
         snapshot.put("moduleEvents", context.getModuleRegistry().getEventBus().snapshot());
@@ -88,9 +89,10 @@ public final class SaveManager {
 
     private Map<String, Object> playerSnapshot() {
         Map<String, Object> player = new LinkedHashMap<>();
-        player.put("spawned", context.getPlayer() != null);
-        if (context.getPlayer() != null) {
-            Vector3f position = context.getPlayer().getPlayerPosition();
+        Player playerRuntime = context.findService(Player.class).orElse(null);
+        player.put("spawned", playerRuntime != null);
+        if (playerRuntime != null) {
+            Vector3f position = playerRuntime.getPlayerPosition();
             player.put("x", position.x);
             player.put("y", position.y);
             player.put("z", position.z);

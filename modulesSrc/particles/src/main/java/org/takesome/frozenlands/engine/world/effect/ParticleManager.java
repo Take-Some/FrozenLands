@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.takesome.frozenlands.engine.player.Player;
 
 public final class ParticleManager {
     private final EngineContext engineContext;
@@ -93,8 +94,9 @@ public final class ParticleManager {
         if (snowfallEffect == null) {
             return;
         }
-        Vector3f followCenter = engineContext.getPlayer() != null
-                ? engineContext.getPlayer().getWorldTranslation()
+        Player player = engineContext.findService(Player.class).orElse(null);
+        Vector3f followCenter = player != null
+                ? player.getWorldTranslation()
                 : engineContext.getCamera().getLocation();
         snowfallEffect.follow(followCenter);
     }

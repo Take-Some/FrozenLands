@@ -20,6 +20,7 @@ import com.jme3.terrain.noise.modulator.NoiseModulator;
 import org.takesome.frozenlands.engine.EngineContext;
 import org.takesome.frozenlands.engine.config.Constants;
 import org.takesome.frozenlands.engine.world.terrain.chunk.TerrainChunkTracker;
+import org.takesome.frozenlands.engine.providers.material.MaterialProvider;
 
 public class TerrainGen {
     private AssetManager assetManager;
@@ -40,7 +41,7 @@ public class TerrainGen {
 
     public TerrainQuad generateTerrain(float baseRoughness,float baseFrequency, float baseAmplitude, float baseLacunarity, int baseOctaves, float baseScale) {
         TerrainQuad terrain;
-        Material matTerrain = this.kernelInterface.getMaterialManager().getMaterial("terrain#default");
+        Material matTerrain = this.kernelInterface.requireService(MaterialProvider.class).getMaterial("terrain#default");
 
         this.base = new FractalSum();
         this.base.setRoughness(baseRoughness);

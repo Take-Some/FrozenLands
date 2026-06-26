@@ -228,13 +228,142 @@ public final class CoreConsoleState extends BaseAppState implements ActionListen
         addOutput("> " + line);
         try {
             Map<String, Object> response = context.getModuleRegistry().call("engine.core", "console.execute", Map.of("line", line));
-            addOutput(String.valueOf(response));
+            for (String responseLine : formatConsoleResponse(response)) {
+                addOutput(responseLine);
+            }
         } catch (RuntimeException exception) {
             addOutput("error: " + exception.getMessage());
         }
         input.clear();
         outputScrollOffset = 0;
         clearCompletions();
+    }
+
+    private List<String> formatConsoleResponse(Map<String, Object> response) {
+        if (response == null || response.isEmpty()) {
+            return List.of("ok");
+        }
+        if (Boolean.FALSE.equals(response.get("ok")) || response.containsKey("error")) {
+            return List.of("error: " + response.getOrDefault("error", "command failed"));
+        }
+        if (response.containsKey("response")) {
+            return formatAnswerValue(response.get("response"));
+        }
+        return formatAnswerValue(response);
+    }
+
+    private List<String> formatAnswerValue(Object value) {
+        if (value == null) {
+            return List.of("ok");
+        }
+        if (value instanceof Map<?, ?> map) {
+            return formatAnswerMap(map);
+        }
+        if (value instanceof List<?> list) {
+            return formatAnswerList(list);
+        }
+        return List.of(String.valueOf(value));
+    }
+
+    private List<String> formatAnswerMap(Map<?, ?> map) {
+        if (Boolean.FALSE.equals(map.get("ok")) || map.containsKey("error")) {
+            return List.of("error: " + (map.containsKey("error") ? map.get("error") : "command failed"));
+        }
+
+        List<String> lines = new ArrayList<>();
+        if (map.containsKey("usage")) {
+            lines.add("usage: " + map.get("usage"));
+        }
+        if (map.containsKey("version")) {
+            lines.add("version: " + map.get("version"));
+        }
+        if (map.containsKey("baseCommands")) {
+            lines.add("base: " + formatInline(map.get("baseCommands")));
+        }
+        if (map.containsKey("dynamicCommands")) {
+            lines.add("dynamic: " + formatInline(map.get("dynamicCommands")));
+        }
+        if (map.containsKey("commands")) {
+            return formatAnswerValue(map.get("commands"));
+        }
+        if (!lines.isEmpty()) {
+            return lines;
+        }
+
+        StringBuilder line = new StringBuilder();
+        for (Map.Entry<?, ?> entry : map.entrySet()) {
+            String key = String.valueOf(entry.getKey());
+            if (technicalKey(key)) {
+                continue;
+            }
+            if (!line.isEmpty()) {
+                line.append(", ");
+            }
+            line.append(key).append("=").append(formatInline(entry.getValue()));
+        }
+        return List.of(line.isEmpty() ? "ok" : line.toString());
+    }
+
+    private List<String> formatAnswerList(List<?> list) {
+        if (list.isEmpty()) {
+            return List.of("[]");
+        }
+        List<String> lines = new ArrayList<>();
+        for (Object item : list) {
+            if (item instanceof Map<?, ?> map && map.get("name") != null) {
+                Object description = map.get("description");
+                lines.add(String.valueOf(map.get("name")) + (description == null ? "" : " - " + description));
+            } else {
+                lines.add(formatInline(item));
+            }
+            if (lines.size() >= MAX_OUTPUT_LINES) {
+                break;
+            }
+        }
+        return lines;
+    }
+
+    private String formatInline(Object value) {
+        if (value == null) {
+            return "null";
+        }
+        if (value instanceof Map<?, ?> map) {
+            StringBuilder builder = new StringBuilder("{");
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                String key = String.valueOf(entry.getKey());
+                if (technicalKey(key)) {
+                    continue;
+                }
+                if (builder.length() > 1) {
+                    builder.append(", ");
+                }
+                builder.append(key).append("=").append(formatInline(entry.getValue()));
+            }
+            return builder.append("}").toString();
+        }
+        if (value instanceof List<?> list) {
+            List<String> items = new ArrayList<>();
+            for (Object item : list) {
+                if (item instanceof Map<?, ?> map && map.get("name") != null) {
+                    items.add(String.valueOf(map.get("name")));
+                } else {
+                    items.add(formatInline(item));
+                }
+                if (items.size() >= 12) {
+                    items.add("…");
+                    break;
+                }
+            }
+            return String.join(", ", items);
+        }
+        return String.valueOf(value);
+    }
+
+    private boolean technicalKey(String key) {
+        return switch (key) {
+            case "ok", "command", "module", "moduleCommand", "owner", "source", "dynamic" -> true;
+            default -> false;
+        };
     }
 
     private void autocomplete() {

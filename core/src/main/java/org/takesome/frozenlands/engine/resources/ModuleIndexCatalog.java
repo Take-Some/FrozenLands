@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 public final class ModuleIndexCatalog {
-    private static final ModuleIndexCatalog DEFAULT = new ModuleIndexCatalog(Path.of("").toAbsolutePath());
+    private static final ModuleIndexCatalog DEFAULT = new ModuleIndexCatalog(resolveDefaultProjectRoot());
 
     private final ObjectMapper mapper = new ObjectMapper();
     private final Path projectRoot;
@@ -32,6 +32,54 @@ public final class ModuleIndexCatalog {
 
     public static ModuleIndexCatalog defaultCatalog() {
         return DEFAULT;
+    }
+
+
+    private static Path resolveDefaultProjectRoot() {
+        String configuredRoot = System.getProperty("frozenlands.runtimeRoot");
+        if (configuredRoot == null || configuredRoot.isBlank()) {
+            configuredRoot = System.getenv("FROZENLANDS_RUNTIME_ROOT");
+        }
+        if (configuredRoot != null && !configuredRoot.isBlank()) {
+            return Path.of(configuredRoot).toAbsolutePath().normalize();
+        }
+
+        Path workingDirectory = Path.of("").toAbsolutePath().normalize();
+        if (isRuntimeRoot(workingDirectory)) {
+            return workingDirectory;
+        }
+
+        try {
+            var codeSource = ModuleIndexCatalog.class.getProtectionDomain().getCodeSource();
+            if (codeSource != null && codeSource.getLocation() != null) {
+                Path codePath = Path.of(codeSource.getLocation().toURI()).toAbsolutePath().normalize();
+                Path start = Files.isRegularFile(codePath) ? codePath.getParent() : codePath;
+                Path discovered = findRuntimeRoot(start);
+                if (discovered != null) {
+                    return discovered;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        return workingDirectory;
+    }
+
+    private static Path findRuntimeRoot(Path start) {
+        Path current = start;
+        while (current != null) {
+            if (isRuntimeRoot(current)) {
+                return current;
+            }
+            current = current.getParent();
+        }
+        return null;
+    }
+
+    private static boolean isRuntimeRoot(Path candidate) {
+        return candidate != null
+                && Files.isDirectory(candidate.resolve("assets"))
+                && Files.isDirectory(candidate.resolve("modulesSrc"));
     }
 
     public boolean hasModule(String moduleId) {
