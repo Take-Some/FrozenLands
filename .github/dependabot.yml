@@ -1,0 +1,59 @@
+# Dependabot keeps FrozenLands dependencies current without mixing runtime work with engine code.
+# Docs: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+version: 2
+
+updates:
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Amsterdam"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "gradle"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    groups:
+      jme-runtime-stack:
+        patterns:
+          - "org.jmonkeyengine:*"
+          - "com.github.stephengold:*"
+      logging-stack:
+        patterns:
+          - "org.apache.logging.log4j:*"
+          - "org.slf4j:*"
+          - "org.fusesource.jansi:*"
+      serialization-stack:
+        patterns:
+          - "com.fasterxml.jackson.core:*"
+          - "com.google.code.gson:*"
+      scripting-stack:
+        patterns:
+          - "org.luaj:*"
+      sky-stack:
+        patterns:
+          - "dev.takesome:sky-simulation"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+      timezone: "Europe/Amsterdam"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    groups:
+      github-actions:
+        patterns:
+          - "actions/*"
+          - "gradle/actions*"
