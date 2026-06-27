@@ -1,6 +1,6 @@
 [versions]
 jme = "3.9.0-stable"
-minie = "8.2.0"
+minie = "9.0.3"
 heart = "9.3.0"
 skySimulation = "1.4.2"
 jackson = "2.22.0"
