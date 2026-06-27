@@ -2,7 +2,7 @@
 jme = "3.9.0-stable"
 minie = "8.2.0"
 heart = "9.3.0"
-skySimulation = "1.4.1"
+skySimulation = "1.4.2"
 jackson = "2.22.0"
 gson = "2.14.0"
 luaj = "3.0.1"
