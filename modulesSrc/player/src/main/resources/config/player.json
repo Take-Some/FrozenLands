@@ -1,5 +1,5 @@
 {
-  "model": "Models/sarah/sarah.gltf",
+  "model": "Models/characters/joel/joel.gltf",
   "scale": 1.0,
   "cullHint": "Never",
   "shadowMode": "Cast",
@@ -17,12 +17,24 @@
     "minHeight": 1.0
   },
   "camera": {
-    "defaultView": "THIRD_PERSON",
-    "firstPersonEyeHeight": 1.58,
+    "defaultView": "FIRST_PERSON",
+    "firstPersonEyeHeight": 1.5,
     "thirdPersonDistance": 6.0,
     "thirdPersonHeight": 2.4,
     "frontPersonDistance": 4.2,
     "frontPersonHeight": 2.1,
-    "transitionSeconds": 0.36
+    "transitionSeconds": 0.36,
+    "firstPersonBodyVisible": false,
+    "firstPersonCameraForwardOffset": 0.22,
+    "firstPersonCameraVerticalOffset": -0.06,
+    "firstPersonLookAheadDistance": 8.0
+  },
+  "input": {
+    "mouseSensitivity": 1.0,
+    "minMouseSensitivity": 0.2,
+    "maxMouseSensitivity": 3.0
+  },
+  "modelPipeline": {
+    "sanitizeSkinnedTangents": false
   }
 }

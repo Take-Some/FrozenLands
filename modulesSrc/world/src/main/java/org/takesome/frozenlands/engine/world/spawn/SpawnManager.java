@@ -6,6 +6,7 @@ import com.jme3.math.Vector3f;
 import org.takesome.frozenlands.engine.EngineContext;
 import org.takesome.frozenlands.engine.lua.LuaRuntimeConfig;
 import org.takesome.frozenlands.engine.player.Player;
+import org.takesome.frozenlands.engine.player.PlayerManager;
 import org.takesome.frozenlands.engine.world.terrain.TerrainManager;
 
 import java.util.LinkedHashMap;
@@ -99,9 +100,8 @@ public final class SpawnManager extends BaseAppState {
     }
 
     private void spawn(Vector3f spawnLocation, String reason) {
-        player = new Player(context);
-        player.addPlayer(context.getCamera(), spawnLocation);
-        context.registerService(Player.class, player);
+        PlayerManager playerManager = context.requireService(PlayerManager.class);
+        player = playerManager.spawnPlayer(spawnLocation, reason);
         context.getModuleRegistry().publishEvent("world.player.spawned", Map.of(
                 "reason", reason,
                 "x", spawnLocation.x,

@@ -1,15 +1,41 @@
 {
   "scripting": {
     "enabled": true,
+    "defaults": {
+      "scriptRoot": "assets/scripts",
+      "entrypoint": "startup.lua"
+    },
     "scriptRoots": [
       "src/main/resources/scripts/lua"
     ],
     "entrypoints": [
       "startup.lua"
     ],
+    "scriptExtensions": [
+      ".lua"
+    ],
     "autoRun": [
       "startup.lua"
     ]
+  },
+  "luaAbi": {
+    "version": 1,
+    "bridgeVersion": "1.1",
+    "maxDepth": 32,
+    "maxTableEntries": 4096
+  },
+  "events": {
+    "module": {
+      "historyLimit": 512,
+      "minHistoryLimit": 64
+    },
+    "provider": {
+      "historyLimit": 512,
+      "minHistoryLimit": 64
+    }
+  },
+  "modules": {
+    "strictDependencies": false
   },
   "console": {
     "enabled": false,

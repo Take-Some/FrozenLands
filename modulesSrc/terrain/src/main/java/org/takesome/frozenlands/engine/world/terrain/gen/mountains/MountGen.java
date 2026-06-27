@@ -9,42 +9,40 @@ import com.jme3.terrain.heightmap.AbstractHeightMap;
 import com.jme3.terrain.heightmap.ImageBasedHeightMap;
 import com.jme3.texture.Texture;
 import org.takesome.frozenlands.engine.EngineContext;
-import org.takesome.frozenlands.engine.config.Constants;
 import org.takesome.frozenlands.engine.providers.material.MaterialProvider;
+import org.takesome.frozenlands.engine.world.terrain.TerrainRuntimeSettings;
 
 public class MountGen {
-
-    private  EngineContext kernelInterface;
-    private AssetManager assetManager;
+    private final EngineContext kernelInterface;
+    private final AssetManager assetManager;
+    private final TerrainRuntimeSettings settings;
     private TerrainQuad distantTerrain;
 
-    public  MountGen(EngineContext kernelInterface){
+    public MountGen(EngineContext kernelInterface) {
         this.kernelInterface = kernelInterface;
         this.assetManager = kernelInterface.getAssetManager();
+        this.settings = new TerrainRuntimeSettings();
     }
 
     public TerrainQuad generateMountains() {
-        Material matTerrain = kernelInterface.requireService(MaterialProvider.class).getMaterial("terrain#mount");
+        Material matTerrain = kernelInterface.requireService(MaterialProvider.class).getMaterial(settings.mountainMaterial());
 
         AbstractHeightMap heightmap;
-        Texture heightMapImage = assetManager.loadTexture("textures/terrain/textures/horizon.png");
+        Texture heightMapImage = assetManager.loadTexture(settings.mountainHeightMap());
         heightmap = new ImageBasedHeightMap(heightMapImage.getImage());
         heightmap.load();
-        heightmap.smooth(0.65f, 1);
-        heightmap.flatten((byte) 2);
+        heightmap.smooth(settings.mountainSmoothAmount(), settings.mountainSmoothRadius());
+        heightmap.flatten(settings.mountainFlatten());
 
-        int patchSize = 65;
-        distantTerrain = new TerrainQuad("Distant Terrain", patchSize, 2049, heightmap.getHeightMap());
+        distantTerrain = new TerrainQuad("Distant Terrain", settings.mountainPatchSize(), settings.mountainQuadSize(), heightmap.getHeightMap());
 
         distantTerrain.setMaterial(matTerrain);
-        distantTerrain.setLocalTranslation(0, Constants.MOUNTAINS_HEIGHT_OFFSET, 0);
-        distantTerrain.setLocalScale(6f, 19f, 6f);
+        distantTerrain.setLocalTranslation(0, settings.mountainHeightOffset(), 0);
+        distantTerrain.setLocalScale(settings.mountainScaleX(), settings.mountainScaleY(), settings.mountainScaleZ());
 
         TerrainLodControl control = new TerrainLodControl(distantTerrain, kernelInterface.getCamera());
         distantTerrain.addControl(control);
         distantTerrain.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
         return distantTerrain;
     }
-
-
 }

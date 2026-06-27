@@ -1,9 +1,11 @@
 package org.takesome.frozenlands.engine.modules;
 
+import org.takesome.frozenlands.engine.runtime.RuntimeCommand;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public interface ModuleCommand {
+public interface ModuleCommand extends RuntimeCommand {
     String id();
 
     default String description() {

@@ -7,6 +7,7 @@ import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
+import org.takesome.frozenlands.engine.player.PlayerRuntimeSettings;
 
 import java.util.HashMap;
 import java.util.List;
@@ -126,5 +127,16 @@ public abstract class UserInputAbstract extends AbstractControl implements Actio
 
     public float getRotationMultiplierRunning() {
         return rotationMultiplierRunning;
+    }
+
+    public void configureRuntimeSettings(PlayerRuntimeSettings settings) {
+        if (settings == null) {
+            return;
+        }
+        this.walkSpeed = settings.walkSpeed();
+        this.runSpeed = settings.runSpeed();
+        this.maxSmoothSpeedChange = settings.maxSmoothSpeedChange();
+        this.rotationMultiplierWalking = settings.walkingRotationMultiplier();
+        this.rotationMultiplierRunning = settings.runningRotationMultiplier();
     }
 }

@@ -38,8 +38,7 @@ public final class WeatherService extends BaseAppState {
         if (weatherRoot.getParent() == null) {
             context.getRootNode().attachChild(weatherRoot);
         }
-        snow = new SnowPrecipitationSystem(context.getAssetManager());
-        snow.setConfig(initialSnowConfig);
+        snow = new SnowPrecipitationSystem(context.getAssetManager(), initialSnowConfig);
         snow.setWind(initialWind);
         weatherRoot.attachChild(snow.root());
         subscribeEvents();
@@ -252,6 +251,7 @@ public final class WeatherService extends BaseAppState {
         result.put("minLife", config.minLife());
         result.put("maxLife", config.maxLife());
         result.put("maxAngularVelocity", config.maxAngularVelocity());
+        result.put("texture", config.texture());
         return result;
     }
 

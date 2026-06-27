@@ -1,8 +1,8 @@
 package org.takesome.frozenlands.engine.lua;
 
 import org.takesome.frozenlands.engine.resources.ModuleIndexCatalog;
+import org.takesome.frozenlands.engine.runtime.RuntimeMaps;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 public final class LuaRuntimeConfig {
@@ -14,34 +14,22 @@ public final class LuaRuntimeConfig {
     }
 
     public Map<String, Object> map(Map<String, Object> source, String key) {
-        Object value = source.get(key);
-        if (value instanceof Map<?, ?> map) {
-            Map<String, Object> result = new LinkedHashMap<>();
-            map.forEach((k, v) -> result.put(String.valueOf(k), v));
-            return result;
-        }
-        return Map.of();
+        return RuntimeMaps.map(source, key);
     }
 
     public String string(Map<String, Object> source, String key, String fallback) {
-        Object value = source.get(key);
-        return value == null ? fallback : String.valueOf(value);
+        return RuntimeMaps.string(source, key, fallback);
     }
 
     public int integer(Map<String, Object> source, String key, int fallback) {
-        Object value = source.get(key);
-        return value instanceof Number number ? number.intValue()
-                : value == null ? fallback : Integer.parseInt(String.valueOf(value));
+        return RuntimeMaps.integer(source, key, fallback);
     }
 
     public float floating(Map<String, Object> source, String key, float fallback) {
-        Object value = source.get(key);
-        return value instanceof Number number ? number.floatValue()
-                : value == null ? fallback : Float.parseFloat(String.valueOf(value));
+        return RuntimeMaps.floating(source, key, fallback);
     }
 
     public boolean bool(Map<String, Object> source, String key, boolean fallback) {
-        Object value = source.get(key);
-        return value == null ? fallback : Boolean.parseBoolean(String.valueOf(value));
+        return RuntimeMaps.bool(source, key, fallback);
     }
 }

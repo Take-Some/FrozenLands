@@ -23,8 +23,6 @@ import java.util.Map;
 import java.util.Random;
 
 public final class SnowPrecipitationSystem {
-    private static final String SNOW_TEXTURE = "textures/snowflake.png";
-
     private final AssetManager assetManager;
     private final Node root = new Node("weather.snow.root");
     private final List<Snowflake> flakes = new ArrayList<>();
@@ -45,7 +43,11 @@ public final class SnowPrecipitationSystem {
 
     public SnowPrecipitationSystem(AssetManager assetManager) {
         this.assetManager = assetManager;
-        allocateFlakes(config.maxFlakes());
+    }
+
+    public SnowPrecipitationSystem(AssetManager assetManager, Config initialConfig) {
+        this.assetManager = assetManager;
+        setConfig(initialConfig);
     }
 
     public Node root() {
@@ -83,7 +85,11 @@ public final class SnowPrecipitationSystem {
 
     public void setConfig(Config config) {
         boolean wasRunning = running;
-        this.config = config == null ? Config.defaultConfig() : config;
+        Config next = config == null ? Config.defaultConfig() : config;
+        if ((next.texture() == null || next.texture().isBlank()) && this.config.texture() != null && !this.config.texture().isBlank()) {
+            next = next.withTexture(this.config.texture());
+        }
+        this.config = next;
         allocateFlakes(this.config.maxFlakes());
         if (wasRunning) {
             start();
@@ -170,7 +176,11 @@ public final class SnowPrecipitationSystem {
         Material material = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         material.setBoolean("VertexColor", true);
         material.setColor("Color", com.jme3.math.ColorRGBA.White);
-        Texture texture = assetManager.loadTexture(SNOW_TEXTURE);
+        String texturePath = config.texture();
+        if (texturePath == null || texturePath.isBlank()) {
+            throw new IllegalStateException("Required weather snow asset path is not configured: weather.snow.texture");
+        }
+        Texture texture = assetManager.loadTexture(texturePath);
         texture.setWrap(Texture.WrapMode.EdgeClamp);
         material.setTexture("ColorMap", texture);
         material.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
@@ -239,8 +249,31 @@ public final class SnowPrecipitationSystem {
             float maxAlpha,
             float minLife,
             float maxLife,
-            float maxAngularVelocity
+            float maxAngularVelocity,
+            String texture
     ) {
+        public Config withTexture(String texture) {
+            return new Config(
+                    maxFlakes,
+                    spawnWidth,
+                    spawnDepth,
+                    spawnMinHeight,
+                    spawnMaxHeight,
+                    killBelowHeight,
+                    minFallSpeed,
+                    maxFallSpeed,
+                    drift,
+                    minSize,
+                    maxSize,
+                    minAlpha,
+                    maxAlpha,
+                    minLife,
+                    maxLife,
+                    maxAngularVelocity,
+                    texture
+            );
+        }
+
         public static Config defaultConfig() {
             return new Config(
                     900,
@@ -258,7 +291,8 @@ public final class SnowPrecipitationSystem {
                     0.85f,
                     4f,
                     12f,
-                    1.4f
+                    1.4f,
+                    ""
             );
         }
 
@@ -279,7 +313,8 @@ public final class SnowPrecipitationSystem {
                     0.95f,
                     3f,
                     9f,
-                    2.5f
+                    2.5f,
+                    defaultConfig().texture()
             );
         }
 
@@ -300,7 +335,8 @@ public final class SnowPrecipitationSystem {
                     0.65f,
                     5f,
                     14f,
-                    0.8f
+                    0.8f,
+                    defaultConfig().texture()
             );
         }
 
@@ -325,13 +361,19 @@ public final class SnowPrecipitationSystem {
                     floatValue(values, "maxAlpha", base.maxAlpha()),
                     floatValue(values, "minLife", base.minLife()),
                     floatValue(values, "maxLife", base.maxLife()),
-                    floatValue(values, "maxAngularVelocity", base.maxAngularVelocity())
+                    floatValue(values, "maxAngularVelocity", base.maxAngularVelocity()),
+                    stringValue(values, "texture", base.texture())
             );
         }
 
         private static int intValue(Map<String, Object> values, String key, int fallback) {
             Object value = values.get(key);
             return value instanceof Number number ? number.intValue() : value == null ? fallback : Integer.parseInt(String.valueOf(value));
+        }
+
+        private static String stringValue(Map<String, Object> values, String key, String fallback) {
+            Object value = values.get(key);
+            return value == null ? fallback : String.valueOf(value);
         }
 
         private static float floatValue(Map<String, Object> values, String key, float fallback) {

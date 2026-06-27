@@ -21,6 +21,7 @@ public final class ParticlesRuntimeInstaller implements EngineRuntimeInstaller {
         context.appStateManager().attach(worldUpdate);
         context.registerService(WorldUpdate.class, worldUpdate);
         context.registerService(ParticleManager.class, worldUpdate.getParticleManager());
+        context.registerService("particles.effects", ParticleEffectRegistry.class, worldUpdate.getParticleManager().effectRegistry());
         context.getModuleRegistry().register(new ParticleModule(worldUpdate.getParticleManager()), context);
     }
 }

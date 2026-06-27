@@ -3,6 +3,7 @@ plugins {
 }
 
 dependencies {
+    implementation project(':frozenlands-terrain')
     implementation project(':provider-material')
     implementation project(':player')
 }

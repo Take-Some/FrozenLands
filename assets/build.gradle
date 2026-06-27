@@ -1,3 +1,5 @@
+import groovy.json.JsonSlurper
+
 plugins {
     id 'base'
 }
@@ -17,6 +19,65 @@ tasks.register('validateAssets') {
     }
 }
 
+tasks.register('validateHtmlUiAssets') {
+    group = 'verification'
+    description = 'Validates the FrozenLands HTML/CSS UI authoring root under assets/ui.'
+
+    def uiDir = layout.projectDirectory.dir('ui')
+    def manifestFile = uiDir.file('ui.manifest.json')
+
+    inputs.dir(uiDir)
+    inputs.file(manifestFile)
+
+    doLast {
+        def uiRoot = uiDir.asFile
+        if (!uiRoot.isDirectory()) {
+            throw new GradleException("HTML UI root is missing: ${uiRoot}")
+        }
+
+        def manifestPath = manifestFile.asFile
+        if (!manifestPath.isFile()) {
+            throw new GradleException("HTML UI manifest is missing: ${manifestPath}")
+        }
+
+        def manifest = new JsonSlurper().parse(manifestPath)
+        def errors = []
+
+        def requireRelativeFile = { String field, Object value ->
+            if (value == null || value.toString().isBlank()) {
+                errors << "${field} is blank"
+                return
+            }
+            def relative = value.toString().replace('\\', '/')
+            if (relative.startsWith('/') || relative.contains('../')) {
+                errors << "${field} must stay inside assets/ui: ${relative}"
+                return
+            }
+            def file = new File(uiRoot, relative)
+            if (!file.isFile()) {
+                errors << "${field} points to missing file: ${relative}"
+            }
+        }
+
+        requireRelativeFile('entry', manifest.entry)
+        manifest.documents?.each { key, value -> requireRelativeFile("documents.${key}", value) }
+        manifest.styles?.eachWithIndex { value, index -> requireRelativeFile("styles[${index}]", value) }
+        manifest.scripts?.eachWithIndex { value, index -> requireRelativeFile("scripts[${index}]", value) }
+        requireRelativeFile('bindings', manifest.bindings)
+
+        ['app', 'system', 'themes', 'components', 'screens', 'scripts', 'data', 'docs'].each { dirName ->
+            if (!new File(uiRoot, dirName).isDirectory()) {
+                errors << "required UI directory is missing: ${dirName}"
+            }
+        }
+
+        if (!errors.isEmpty()) {
+            throw new GradleException('HTML UI asset validation failed:\n - ' + errors.join('\n - '))
+        }
+    }
+}
+
 tasks.named('check') {
     dependsOn validateAssets
+    dependsOn validateHtmlUiAssets
 }

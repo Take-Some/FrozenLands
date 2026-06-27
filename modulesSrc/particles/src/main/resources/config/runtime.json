@@ -14,7 +14,10 @@
     "velocityX": 0.7,
     "velocityY": -0.35,
     "velocityZ": 0.2,
-    "velocityVariation": 0.65
+    "velocityVariation": 0.65,
+    "texture": "textures/snowflake.png",
+    "imagesX": 1,
+    "imagesY": 1
   },
   "effects": {
     "snowImpact": {
@@ -36,6 +39,58 @@
       "gravityY": 0.05,
       "velocityY": 0.25,
       "velocityVariation": 0.7
+    },
+    "woodChop": {
+      "texture": "textures/snowflake.png",
+      "particles": 36,
+      "life": 0.42,
+      "startSize": 0.045,
+      "endSize": 0.18,
+      "gravityY": -0.55,
+      "velocityX": 0.12,
+      "velocityY": 0.55,
+      "velocityZ": 0.12,
+      "velocityVariation": 0.95,
+      "startR": 0.92,
+      "startG": 0.62,
+      "startB": 0.34,
+      "startA": 0.92,
+      "endR": 0.35,
+      "endG": 0.22,
+      "endB": 0.12,
+      "endA": 0.0
+    },
+    "woodBreak": {
+      "texture": "textures/snowflake.png",
+      "particles": 72,
+      "lowLife": 0.55,
+      "highLife": 0.9,
+      "startSize": 0.06,
+      "endSize": 0.28,
+      "gravityY": -0.75,
+      "velocityX": 0.25,
+      "velocityY": 0.95,
+      "velocityZ": 0.25,
+      "velocityVariation": 1.0,
+      "startR": 0.75,
+      "startG": 0.48,
+      "startB": 0.26,
+      "startA": 0.95,
+      "endR": 0.28,
+      "endG": 0.18,
+      "endB": 0.1,
+      "endA": 0.0
     }
+  },
+  "runtime": {
+    "maxActiveBursts": 96,
+    "defaultEffect": "smoke",
+    "defaultTexture": "textures/snowflake.png"
+  },
+  "eventEffects": {
+    "enabled": true,
+    "player.grindable.hit": "woodChop",
+    "player.grindable.destroyed": "woodBreak",
+    "player.landed": "snowImpact"
   }
 }

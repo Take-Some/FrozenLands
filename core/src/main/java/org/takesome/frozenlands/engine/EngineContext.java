@@ -11,6 +11,8 @@ import com.jme3.scene.Node;
 import org.slf4j.Logger;
 import org.takesome.frozenlands.engine.modules.ModuleRegistry;
 import org.takesome.frozenlands.engine.providers.ProviderRegistry;
+import org.takesome.frozenlands.engine.services.EngineServicePool;
+import org.takesome.frozenlands.engine.tasks.EngineTaskPool;
 
 import java.util.Map;
 import java.util.Optional;
@@ -29,10 +31,16 @@ public interface EngineContext {
     BulletAppState getBulletAppState();
     ProviderRegistry getProviderRegistry();
     ModuleRegistry getModuleRegistry();
+    EngineTaskPool getTaskPool();
+    EngineServicePool getServicePool();
 
     <T> void registerService(Class<T> serviceType, T service);
 
+    <T> void registerService(String serviceId, Class<T> serviceType, T service);
+
     <T> Optional<T> findService(Class<T> serviceType);
+
+    <T> Optional<T> findService(String serviceId, Class<T> serviceType);
 
     default <T> T requireService(Class<T> serviceType) {
         return findService(serviceType).orElseThrow(() -> new IllegalStateException(
@@ -42,5 +50,9 @@ public interface EngineContext {
 
     default <T> T serviceOrNull(Class<T> serviceType) {
         return findService(serviceType).orElse(null);
+    }
+
+    default Map<String, Object> servicePoolStatus() {
+        return getServicePool().status();
     }
 }

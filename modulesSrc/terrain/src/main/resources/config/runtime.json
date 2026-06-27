@@ -1,7 +1,7 @@
 {
   "grid": {
     "patchSize": 65,
-    "quadSize": 257,
+    "quadSize": 513,
     "tileNoiseScale": 96.0
   },
   "scale": {
@@ -10,11 +10,26 @@
     "z": 1.35
   },
   "lod": {
-    "patchSize": 129,
-    "multiplier": 2.2
+    "patchSize": 65,
+    "multiplier": 2.0
+  },
+  "materials": {
+    "terrain": "terrain#default",
+    "mountains": "terrain#mount"
   },
   "mountains": {
-    "heightOffset": 50.0
+    "heightMap": "textures/terrain/textures/horizon.png",
+    "patchSize": 65,
+    "quadSize": 2049,
+    "smoothAmount": 0.65,
+    "smoothRadius": 1,
+    "flatten": 2,
+    "heightOffset": 50.0,
+    "scale": {
+      "x": 6.0,
+      "y": 19.0,
+      "z": 6.0
+    }
   },
   "noise": {
     "roughness": 0.82,
@@ -23,5 +38,81 @@
     "lacunarity": 2.12,
     "octaves": 8,
     "scale": 0.02125
+  },
+  "filters": {
+    "perturbMagnitude": 0.419,
+    "erosionRadius": 1,
+    "erosionTalus": 0.711,
+    "smoothRadius": 1,
+    "smoothEffect": 0.7,
+    "iterations": 1
+  },
+  "placements": {
+    "groups": [
+      {
+        "id": "dead_trees",
+        "enabled": true,
+        "kind": "tree",
+        "models": [
+          "Models/trees/deadFirTrees/deadFirTrees.gltf",
+          "Models/trees/deadTrees/deadTrees.gltf",
+          "Models/trees/deadOakTrees/deadOakTrees.gltf"
+        ],
+        "minPerTile": 80,
+        "maxPerTile": 160,
+        "placementAttempts": 16,
+        "rayStartHeight": 800.0,
+        "scale": {
+          "min": 0.42,
+          "max": 1.35
+        },
+        "rotation": {
+          "yawMinDeg": -180.0,
+          "yawMaxDeg": 180.0
+        },
+        "fit": {
+          "edgePadding": 1.25,
+          "footprintPadding": 0.65,
+          "maxSurfaceDelta": 1.65,
+          "minSpacing": 2.75
+        },
+        "collision": {
+          "enabled": true,
+          "mesh": false,
+          "proxyRadiusFactor": 0.14,
+          "proxyRadiusMin": 0.22,
+          "proxyRadiusMax": 0.55,
+          "proxyHalfHeightFactor": 0.38,
+          "proxyHalfHeightMin": 1.35,
+          "proxyHalfHeightMax": 3.6,
+          "proxyYOffset": 0.08
+        },
+        "gameplay": {
+          "grindable": true,
+          "kindCode": 1,
+          "baseHealth": 80.0,
+          "healthPerScale": 45.0
+        }
+      }
+    ]
+  },
+  "trees": {
+    "models": [
+      "Models/trees/deadFirTrees/deadFirTrees.gltf",
+      "Models/trees/deadTrees/deadTrees.gltf",
+      "Models/trees/deadOakTrees/deadOakTrees.gltf"
+    ],
+    "minPerTile": 80,
+    "maxPerTile": 160,
+    "placementAttempts": 16,
+    "rayStartHeight": 800.0,
+    "collision": {
+      "enabled": true,
+      "mesh": false
+    },
+    "health": {
+      "base": 80.0,
+      "perScale": 45.0
+    }
   }
 }

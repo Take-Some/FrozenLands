@@ -1,0 +1,32 @@
+{
+  "schema": "frozenlands.module.index.v1",
+  "module": "frozenlands-terrain",
+  "modulePath": "modulesSrc/frozenlands-terrain",
+  "id": "frozenlands.terrain",
+  "type": "runtime",
+  "description": "FrozenLands terrain generation service: deterministic chunks, Lua profile ABI, biome fields and gameplay-ready sampling.",
+  "project": {
+    "id": "takesome.frozenlands",
+    "name": "Take Some() Frozen Lands",
+    "projectModule": true,
+    "moduleRole": "runtime",
+    "moduleLayer": "runtime",
+    "sourceRoot": "modulesSrc/frozenlands-terrain"
+  },
+  "lua": {
+    "api": "src/main/resources/scripts/lua/api.lua",
+    "events": "src/main/resources/scripts/lua/events.lua",
+    "usage": "local m = require('frozenlands.terrain'); m.call('sample', { x = 0, z = 0 })"
+  },
+  "runtime": {
+    "configs": {
+      "runtime": "src/main/resources/config/runtime.json"
+    },
+    "assetRoots": [
+      "src/main/resources"
+    ]
+  },
+  "provides": ["frozenlands.terrain"],
+  "dependsOn": ["engine.core"],
+  "optional": ["engine.scripting.lua", "engine.cache", "engine.materials", "engine.assets"]
+}

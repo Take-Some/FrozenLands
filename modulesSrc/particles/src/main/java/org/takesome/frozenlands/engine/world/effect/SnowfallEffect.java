@@ -15,10 +15,10 @@ public class SnowfallEffect extends ParticleEmitter {
         super("Snow", ParticleMesh.Type.Triangle, settings.snowParticles());
         this.settings = settings;
         Material snowMat = new Material(engineContext.getAssetManager(), "Common/MatDefs/Misc/Particle.j3md");
-        snowMat.setTexture("Texture", engineContext.getAssetManager().loadTexture("textures/snowflake.png"));
+        snowMat.setTexture("Texture", engineContext.getAssetManager().loadTexture(settings.snowTexture()));
         setMaterial(snowMat);
-        setImagesX(1);
-        setImagesY(1);
+        setImagesX(settings.snowImagesX());
+        setImagesY(settings.snowImagesY());
         setStartColor(new ColorRGBA(1f, 1f, 1f, 0.9f));
         setEndColor(new ColorRGBA(1f, 1f, 1f, 0.15f));
         setStartSize(settings.startSize());

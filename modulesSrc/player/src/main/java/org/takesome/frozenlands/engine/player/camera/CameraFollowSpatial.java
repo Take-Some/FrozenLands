@@ -29,6 +29,7 @@ public class CameraFollowSpatial extends AbstractControl {
     private final int playerRef;
     private final Vector3f tmpOrigin = new Vector3f();
     private final Vector3f tmpDirection = new Vector3f();
+    private final Vector3f tmpHorizontalDirection = new Vector3f();
     private final Vector3f tmpTarget = new Vector3f();
     private final Vector3f desiredLocation = new Vector3f();
     private final Vector3f desiredTarget = new Vector3f();
@@ -151,14 +152,32 @@ public class CameraFollowSpatial extends AbstractControl {
     }
 
     private void computeFirstPersonCamera() {
+        lookDirection(true);
+        if (options.isFirstPersonBodyVisible()) {
+            computeBodyAwareFirstPersonCamera();
+            return;
+        }
         if (cameraNode != null) {
             desiredLocation.set(cameraNode.getWorldTranslation());
         } else {
             desiredLocation.set(spatial.getWorldTranslation());
             desiredLocation.y += eyeHeight();
         }
-        lookDirection(true);
-        desiredTarget.set(desiredLocation).addLocal(tmpDirection);
+        desiredTarget.set(desiredLocation).addLocal(tmpDirection.mult(options.getFirstPersonLookAheadDistance()));
+    }
+
+    private void computeBodyAwareFirstPersonCamera() {
+        desiredLocation.set(spatial.getWorldTranslation());
+        desiredLocation.y += eyeHeight() + options.getFirstPersonCameraVerticalOffset();
+
+        tmpHorizontalDirection.set(tmpDirection.x, 0f, tmpDirection.z);
+        if (tmpHorizontalDirection.lengthSquared() < 0.0001f) {
+            tmpHorizontalDirection.set(Vector3f.UNIT_Z);
+        } else {
+            tmpHorizontalDirection.normalizeLocal();
+        }
+        desiredLocation.addLocal(tmpHorizontalDirection.mult(options.getFirstPersonCameraForwardOffset()));
+        desiredTarget.set(desiredLocation).addLocal(tmpDirection.mult(options.getFirstPersonLookAheadDistance()));
     }
 
     private void computeThirdPersonCamera() {

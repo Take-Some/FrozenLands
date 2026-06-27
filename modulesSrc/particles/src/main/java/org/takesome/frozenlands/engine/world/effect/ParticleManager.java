@@ -2,17 +2,19 @@ package org.takesome.frozenlands.engine.world.effect;
 
 import com.jme3.math.Vector3f;
 import org.takesome.frozenlands.engine.EngineContext;
-
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import org.takesome.frozenlands.engine.events.EngineEventPayload;
+import org.takesome.frozenlands.engine.events.EngineEventTopics;
+import org.takesome.frozenlands.engine.events.EventSubscriptionBag;
 import org.takesome.frozenlands.engine.player.Player;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public final class ParticleManager {
     private final EngineContext engineContext;
     private final ParticleRuntimeSettings settings;
-    private final List<ParticleBurstEffect> activeBursts = new ArrayList<>();
+    private final ParticleEffectRegistry effectRegistry;
+    private final EventSubscriptionBag subscriptions = new EventSubscriptionBag();
     private SnowfallEffect snowfallEffect;
     private boolean snowEnabled;
     private float snowRate;
@@ -20,33 +22,38 @@ public final class ParticleManager {
     public ParticleManager(EngineContext engineContext) {
         this.engineContext = engineContext;
         this.settings = new ParticleRuntimeSettings();
+        this.effectRegistry = new ParticleEffectRegistry(engineContext, settings);
         this.snowEnabled = settings.snowEnabled();
         this.snowRate = settings.snowRate();
     }
 
     public void initialize() {
-        if (snowfallEffect != null) {
-            return;
+        if (snowfallEffect == null) {
+            snowfallEffect = new SnowfallEffect(engineContext, settings);
+            snowfallEffect.setParticlesPerSec(snowEnabled ? snowRate : 0f);
+            snowfallEffect.follow(engineContext.getCamera().getLocation());
+            engineContext.getRootNode().attachChild(snowfallEffect);
+            engineContext.getModuleRegistry().publishEvent("particles.snow.initialized", status());
         }
-        snowfallEffect = new SnowfallEffect(engineContext, settings);
-        snowfallEffect.setParticlesPerSec(snowEnabled ? snowRate : 0f);
-        snowfallEffect.follow(engineContext.getCamera().getLocation());
-        engineContext.getRootNode().attachChild(snowfallEffect);
-        engineContext.getModuleRegistry().publishEvent("particles.snow.initialized", status());
+        subscribeGameplayEvents();
     }
 
     public void cleanup() {
+        closeSubscriptions();
         if (snowfallEffect != null) {
             snowfallEffect.removeFromParent();
             snowfallEffect = null;
         }
-        activeBursts.forEach(ParticleBurstEffect::removeFromParent);
-        activeBursts.clear();
+        effectRegistry.cleanup();
     }
 
     public void update(float tpf) {
         updateSnow();
-        activeBursts.removeIf(ParticleBurstEffect::isExpired);
+        effectRegistry.update(tpf);
+    }
+
+    public ParticleEffectRegistry effectRegistry() {
+        return effectRegistry;
     }
 
     public void setSnowEnabled(boolean snowEnabled) {
@@ -66,11 +73,21 @@ public final class ParticleManager {
     }
 
     public Map<String, Object> emit(String effectId, Vector3f position) {
-        return burst(effectId, position, "particles.emitted");
+        return effectRegistry.emit(effectId, position, "particles.emitted", "manual.emit");
     }
 
     public Map<String, Object> impact(String effectId, Vector3f position) {
-        return burst(effectId, position, "particles.impact");
+        return effectRegistry.emit(effectId, position, "particles.impact", "manual.impact");
+    }
+
+    public Map<String, Object> effectStatus(String effectId) {
+        return effectRegistry.effectStatus(effectId);
+    }
+
+    public Map<String, Object> clearEffects() {
+        effectRegistry.cleanup();
+        engineContext.getModuleRegistry().publishEvent("particles.cleared", status());
+        return status();
     }
 
     public Map<String, Object> status() {
@@ -79,13 +96,13 @@ public final class ParticleManager {
         status.put("snowInitialized", snowfallEffect != null);
         status.put("snowEnabled", snowEnabled);
         status.put("snowRate", snowRate);
-        status.put("activeBursts", activeBursts.size());
-        status.put("effects", settings.effectsManifest());
+        status.put("eventBindingsEnabled", settings.eventBindingsEnabled());
+        status.putAll(effectRegistry.status());
         if (snowfallEffect != null) {
             Vector3f position = snowfallEffect.getWorldTranslation();
-            status.put("x", position.x);
-            status.put("y", position.y);
-            status.put("z", position.z);
+            status.put("snowX", position.x);
+            status.put("snowY", position.y);
+            status.put("snowZ", position.z);
         }
         return status;
     }
@@ -101,23 +118,28 @@ public final class ParticleManager {
         snowfallEffect.follow(followCenter);
     }
 
-    private Map<String, Object> burst(String effectId, Vector3f position, String eventTopic) {
-        ParticleBurstEffect burst = new ParticleBurstEffect(engineContext, settings.effect(effectId), position);
-        engineContext.getRootNode().attachChild(burst);
-        activeBursts.add(burst);
-        burst.trigger();
+    private void subscribeGameplayEvents() {
+        if (!subscriptions.isEmpty() || !settings.eventBindingsEnabled()) {
+            return;
+        }
+        subscriptions.add(engineContext.getModuleRegistry().getEventBus().subscribe(
+                EngineEventTopics.PARTICLE_EFFECT_REQUESTED,
+                this::emitFromRequest));
+    }
 
-        Map<String, Object> event = new LinkedHashMap<>();
-        event.put("effect", effectId);
-        event.put("x", position.x);
-        event.put("y", position.y);
-        event.put("z", position.z);
-        event.put("activeBursts", activeBursts.size());
-        engineContext.getModuleRegistry().publishEvent(eventTopic, event);
+    private void emitFromRequest(Map<String, Object> event) {
+        Map<String, Object> payload = EngineEventPayload.of(event);
+        String effectId = EngineEventPayload.string(payload, "effect", settings.defaultEffect());
+        String reason = EngineEventPayload.string(payload, "reason", EngineEventPayload.string(payload, "source", "event.request"));
+        Vector3f position = new Vector3f(
+                EngineEventPayload.floating(payload, "x", 0f),
+                EngineEventPayload.floating(payload, "y", 0f),
+                EngineEventPayload.floating(payload, "z", 0f)
+        );
+        effectRegistry.emit(effectId, position, "particles.event.emitted", reason);
+    }
 
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("ok", true);
-        result.putAll(event);
-        return result;
+    private void closeSubscriptions() {
+        subscriptions.close();
     }
 }

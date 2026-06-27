@@ -18,20 +18,20 @@ public final class ParticleBurstEffect extends ParticleEmitter {
         Material material = new Material(context.getAssetManager(), "Common/MatDefs/Misc/Particle.j3md");
         material.setTexture("Texture", context.getAssetManager().loadTexture(settings.texture()));
         setMaterial(material);
-        setImagesX(1);
-        setImagesY(1);
-        setStartColor(new ColorRGBA(1f, 1f, 1f, 0.85f));
-        setEndColor(new ColorRGBA(1f, 1f, 1f, 0f));
+        setImagesX(settings.imagesX());
+        setImagesY(settings.imagesY());
+        setStartColor(new ColorRGBA(settings.startR(), settings.startG(), settings.startB(), settings.startA()));
+        setEndColor(new ColorRGBA(settings.endR(), settings.endG(), settings.endB(), settings.endA()));
         setStartSize(settings.startSize());
         setEndSize(settings.endSize());
-        setGravity(0, settings.gravityY(), 0);
-        setLowLife(settings.life());
-        setHighLife(settings.life());
+        setGravity(settings.gravityX(), settings.gravityY(), settings.gravityZ());
+        setLowLife(settings.lowLife());
+        setHighLife(settings.highLife());
         setParticlesPerSec(0);
         getParticleInfluencer().setInitialVelocity(new Vector3f(settings.velocityX(), settings.velocityY(), settings.velocityZ()));
         getParticleInfluencer().setVelocityVariation(settings.velocityVariation());
         setLocalTranslation(position);
-        addControl(new ExpireControl(settings.life() + 0.25f));
+        addControl(new ExpireControl(settings.highLife() + 0.35f));
     }
 
     public void trigger() {

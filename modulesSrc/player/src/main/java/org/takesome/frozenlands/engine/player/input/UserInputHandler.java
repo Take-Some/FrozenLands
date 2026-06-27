@@ -6,12 +6,13 @@ import com.jme3.input.controls.KeyTrigger;
 import com.jme3.input.controls.MouseAxisTrigger;
 import com.jme3.input.controls.MouseButtonTrigger;
 import com.jme3.math.FastMath;
-import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.Camera;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import org.takesome.frozenlands.engine.events.EngineEventTopics;
 import org.takesome.frozenlands.engine.player.Player;
+import org.takesome.frozenlands.engine.player.camera.PlayerCameraRig;
 import org.takesome.frozenlands.engine.ui.PlayerHud;
 
 import java.util.Arrays;
@@ -35,12 +36,15 @@ public class UserInputHandler extends UserInputAbstract {
     private static final float MAX_HEAD_PITCH = 45f * FastMath.DEG_TO_RAD;
     private static final float MIN_CAMERA_PITCH = -80f * FastMath.DEG_TO_RAD;
     private static final float MAX_CAMERA_PITCH = 80f * FastMath.DEG_TO_RAD;
+    private static final float MOVEMENT_EPSILON = 0.0001f;
 
     private final Player playerInterface;
     private final Runnable attackCallback;
     private final int playerRef;
     private final boolean[] directions = new boolean[4];
-    private final Vector3f tmpV3 = new Vector3f();
+    private final Vector3f tmpForward = new Vector3f();
+    private final Vector3f tmpLeft = new Vector3f();
+    private final Vector3f tmpWalkDirection = new Vector3f();
     private final float[] angles = {0, 0, 0};
 
     private BetterCharacterControl characterControl;
@@ -59,6 +63,7 @@ public class UserInputHandler extends UserInputAbstract {
         this.attackCallback = attackCallback;
         this.playerRef = player.runtimeId();
         setUserInputConfig((HashMap<String, List<Object>>) player.getConfig().get("userInput"));
+        configureRuntimeSettings(player.getRuntimeSettings());
         this.playerHud = new PlayerHud(player);
     }
 
@@ -147,23 +152,97 @@ public class UserInputHandler extends UserInputAbstract {
             characterControl.setWalkDirection(Vector3f.ZERO);
             return;
         }
-        Quaternion tmpQtr = new Quaternion();
+
         float targetSpeed = isRunning() ? getRunSpeed() : getWalkSpeed();
         float speedChange = targetSpeed - getCurrentSpeed();
         float actualSpeedChange = Math.signum(speedChange) * Math.min(getMaxSmoothSpeedChange() * tpf, Math.abs(speedChange));
         setCurrentSpeed(getCurrentSpeed() + actualSpeedChange);
-        direction.multLocal(getCurrentSpeed() * speedMultiplier);
 
-        tmpV3.set(characterControl.getViewDirection());
-        tmpV3.y = 0;
-        tmpV3.normalizeLocal();
-        tmpQtr.lookAt(tmpV3, Vector3f.UNIT_Y);
-        tmpQtr.multLocal(direction);
+        updateCameraMovementBasis();
+        characterControl.setViewDirection(tmpForward);
 
-        characterControl.setWalkDirection(direction);
-        characterControl.setPhysicsDamping(0.9f);
-        updatePlayerState(direction, tpf);
+        Vector3f walkDirection = cameraRelativeWalkDirection(direction);
+        if (walkDirection.lengthSquared() > MOVEMENT_EPSILON) {
+            walkDirection.multLocal(getCurrentSpeed() * speedMultiplier);
+        } else {
+            walkDirection.set(Vector3f.ZERO);
+        }
+
+        characterControl.setWalkDirection(walkDirection);
+        characterControl.setPhysicsDamping(playerInterface.getRuntimeSettings().walkDamping());
+        updatePlayerState(walkDirection, tpf);
+        playerInterface.updateLocomotionState(
+                getPlayerState(),
+                walkDirection,
+                characterControl.getVelocity(),
+                characterControl.isOnGround(),
+                isRunning(),
+                getCurrentSpeed()
+        );
         updateHudPosition();
+    }
+
+    private void updateCameraMovementBasis() {
+        Camera camera = activeCamera();
+        if (camera != null) {
+            tmpForward.set(camera.getDirection());
+        } else {
+            tmpForward.set(characterControl.getViewDirection());
+        }
+        if (!normalizeHorizontal(tmpForward)) {
+            tmpForward.set(characterControl.getViewDirection());
+            if (!normalizeHorizontal(tmpForward)) {
+                tmpForward.set(Vector3f.UNIT_Z);
+            }
+        }
+
+        if (camera != null) {
+            tmpLeft.set(camera.getLeft());
+        } else {
+            tmpLeft.set(-tmpForward.z, 0f, tmpForward.x);
+        }
+        if (!normalizeHorizontal(tmpLeft)) {
+            tmpLeft.set(-tmpForward.z, 0f, tmpForward.x);
+            normalizeHorizontal(tmpLeft);
+        }
+    }
+
+    private Vector3f cameraRelativeWalkDirection(Vector3f inputDirection) {
+        tmpWalkDirection.set(Vector3f.ZERO);
+        if (inputDirection == null || inputDirection.lengthSquared() <= MOVEMENT_EPSILON) {
+            return tmpWalkDirection;
+        }
+
+        tmpWalkDirection.addLocal(
+                tmpLeft.x * inputDirection.x,
+                0f,
+                tmpLeft.z * inputDirection.x
+        );
+        tmpWalkDirection.addLocal(
+                tmpForward.x * inputDirection.z,
+                0f,
+                tmpForward.z * inputDirection.z
+        );
+        tmpWalkDirection.y = 0f;
+
+        if (tmpWalkDirection.lengthSquared() > 1f) {
+            tmpWalkDirection.normalizeLocal();
+        }
+        return tmpWalkDirection;
+    }
+
+    private boolean normalizeHorizontal(Vector3f vector) {
+        vector.y = 0f;
+        if (vector.lengthSquared() <= MOVEMENT_EPSILON) {
+            return false;
+        }
+        vector.normalizeLocal();
+        return true;
+    }
+
+    private Camera activeCamera() {
+        PlayerCameraRig cameraRig = playerInterface.getCameraRig();
+        return cameraRig == null ? null : cameraRig.camera();
     }
 
     @Override
@@ -278,7 +357,7 @@ public class UserInputHandler extends UserInputAbstract {
         float value = number(payload, "value", 0f);
         float tpf = number(payload, "tpf", 0f);
         float rotationMultiplier = isRunning() ? getRotationMultiplierRunning() : getRotationMultiplierWalking();
-        value *= rotationMultiplier;
+        value *= rotationMultiplier * playerInterface.getPlayerOptions().getMouseSensitivity();
 
         switch (name) {
             case "Rotate_Left" -> angles[1] += value;
@@ -314,7 +393,7 @@ public class UserInputHandler extends UserInputAbstract {
         if (isPressed) {
             publish(EngineEventTopics.PLAYER_JUMP_REQUESTED, Map.of("playerRef", playerRef));
             characterControl.jump();
-            characterControl.setPhysicsDamping(0);
+            characterControl.setPhysicsDamping(playerInterface.getRuntimeSettings().jumpDamping());
         }
     }
 

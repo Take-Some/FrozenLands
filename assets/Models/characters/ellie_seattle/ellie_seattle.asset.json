@@ -1,0 +1,260 @@
+{
+  "asset": "ellie_seattle",
+  "model": "assets/Models/characters/ellie_seattle/ellie_seattle.gltf",
+  "binary": "assets/Models/characters/ellie_seattle/ellie_seattle.bin",
+  "sourceTextures": "assets/textures/characters/ellie_seattle/source",
+  "runtimeTextures": "assets/textures/characters/ellie_seattle/runtime",
+  "materialsApplied": [
+    {
+      "material": "ellie-arms_5ABE1B4C_0:m_0",
+      "part": "ellie-arms",
+      "base": "../../../textures/characters/ellie_seattle/runtime/ellie_arms_baseColor.png",
+      "normal": "../../../textures/characters/ellie_seattle/runtime/ellie_arms_normal.png"
+    },
+    {
+      "material": "ellie-backpack-zip-cloth_7ECEA019_0:m_0",
+      "part": "ellie-backpack-zip-cloth",
+      "base": "../../../textures/characters/ellie_seattle/runtime/ellie_backpack_zip_cloth_baseColor.png",
+      "normal": "../../../textures/characters/ellie_seattle/runtime/ellie_backpack_zip_cloth_normal.png"
+    },
+    {
+      "material": "ellie-backpack_5ABE1B4C_0:m_0",
+      "part": "ellie-backpack",
+      "base": "../../../textures/characters/ellie_seattle/runtime/ellie_backpack_baseColor.png",
+      "normal": "../../../textures/characters/ellie_seattle/runtime/ellie_backpack_normal.png"
+    },
+    {
+      "material": "ellie-bandage-bicep-l_5ABE1B4C_0:m_0",
+      "part": "ellie-bandage-bicep-l",
+      "base": "../../../textures/characters/ellie_seattle/runtime/ellie_bandage_bicep_l_baseColor.png",
+      "normal": "../../../textures/characters/ellie_seattle/runtime/ellie_bandage_bicep_l_normal.png"
+    },
+    {
+      "material": "ellie-bandage-forearm-r_5ABE1B4C_0:m_0",
+      "part": "ellie-bandage-forearm-r",
+      "base": "../../../textures/characters/ellie_seattle/runtime/ellie_bandage_forearm_r_baseColor.png",
+      "normal": "../../../textures/characters/ellie_seattle/runtime/ellie_bandage_forearm_r_normal.png"
+    },
+    {
+      "material": "ellie-body_5ABE1B4C_0:m_0",
+      "part": "ellie-body",
+      "base": "../../../textures/characters/ellie_seattle/runtime/ellie_body_baseColor.png",
+      "normal": "../../../textures/characters/ellie_seattle/runtime/ellie_body_normal.png"
+    },
+    {
+      "material": "ellie-bracelet_5ABE1B4C_0:m_0",
+      "part": "ellie-bracelet",
+      "base": "../../../textures/characters/ellie_seattle/runtime/ellie_bracelet_baseColor.png",
+      "normal": "../../../textures/characters/ellie_seattle/runtime/ellie_bracelet_normal.png"
+    },
+    {
+      "material": "ellie-hair-cloth_B85A0AFE_0:m_0",
+      "part": "ellie-hair-cloth",
+      "base": "../../../textures/characters/ellie_seattle/runtime/ellie_hair_cloth_baseColor.png",
+      "normal": "../../../textures/characters/ellie_seattle/runtime/ellie_hair_cloth_normal.png"
+    },
+    {
+      "material": "ellie-head_5ABE1B4C_0:m_0",
+      "part": "ellie-head",
+      "base": "../../../textures/characters/ellie_seattle/runtime/ellie_head_baseColor.png",
+      "normal": "../../../textures/characters/ellie_seattle/runtime/ellie_head_normal.png"
+    },
+    {
+      "material": "ellie-jacket-cloth_87C593D5_0:m_0",
+      "part": "ellie-jacket-cloth",
+      "base": "../../../textures/characters/ellie_seattle/runtime/ellie_jacket_cloth_baseColor.png",
+      "normal": "../../../textures/characters/ellie_seattle/runtime/ellie_jacket_cloth_normal.png"
+    },
+    {
+      "material": "ellie-leg-holster-r_5ABE1B4C_0:m_0",
+      "part": "ellie-leg-holster-r",
+      "base": "../../../textures/characters/ellie_seattle/runtime/ellie_leg_holster_r_baseColor.png",
+      "normal": "../../../textures/characters/ellie_seattle/runtime/ellie_leg_holster_r_normal.png"
+    }
+  ],
+  "conversionLog": [
+    {
+      "ok": true,
+      "src": "ellie-arms/ellie-arms-seattle-color.tga(2).dds",
+      "out": "assets/textures/characters/ellie_seattle/runtime/ellie_arms_baseColor.png",
+      "uri": "../../../textures/characters/ellie_seattle/runtime/ellie_arms_baseColor.png",
+      "part": "ellie-arms",
+      "kind": "baseColor"
+    },
+    {
+      "ok": true,
+      "src": "ellie-arms/ellie-arms-normal.tga(1).dds",
+      "out": "assets/textures/characters/ellie_seattle/runtime/ellie_arms_normal.png",
+      "uri": "../../../textures/characters/ellie_seattle/runtime/ellie_arms_normal.png",
+      "part": "ellie-arms",
+      "kind": "normal"
+    },
+    {
+      "ok": true,
+      "src": "ellie-backpack/ellie-backpack-color.tga(1).dds",
+      "out": "assets/textures/characters/ellie_seattle/runtime/ellie_backpack_zip_cloth_baseColor.png",
+      "uri": "../../../textures/characters/ellie_seattle/runtime/ellie_backpack_zip_cloth_baseColor.png",
+      "part": "ellie-backpack-zip-cloth",
+      "kind": "baseColor"
+    },
+    {
+      "ok": true,
+      "src": "ellie-backpack/ellie-backpack-normal.tga(1).dds",
+      "out": "assets/textures/characters/ellie_seattle/runtime/ellie_backpack_zip_cloth_normal.png",
+      "uri": "../../../textures/characters/ellie_seattle/runtime/ellie_backpack_zip_cloth_normal.png",
+      "part": "ellie-backpack-zip-cloth",
+      "kind": "normal"
+    },
+    {
+      "ok": true,
+      "src": "ellie-backpack/ellie-backpack-color.tga(1).dds",
+      "out": "assets/textures/characters/ellie_seattle/runtime/ellie_backpack_baseColor.png",
+      "uri": "../../../textures/characters/ellie_seattle/runtime/ellie_backpack_baseColor.png",
+      "part": "ellie-backpack",
+      "kind": "baseColor"
+    },
+    {
+      "ok": true,
+      "src": "ellie-backpack/ellie-backpack-normal.tga(1).dds",
+      "out": "assets/textures/characters/ellie_seattle/runtime/ellie_backpack_normal.png",
+      "uri": "../../../textures/characters/ellie_seattle/runtime/ellie_backpack_normal.png",
+      "part": "ellie-backpack",
+      "kind": "normal"
+    },
+    {
+      "ok": true,
+      "src": "ellie-bandage/bandage-forearm-color.tga(1).dds",
+      "out": "assets/textures/characters/ellie_seattle/runtime/ellie_bandage_bicep_l_baseColor.png",
+      "uri": "../../../textures/characters/ellie_seattle/runtime/ellie_bandage_bicep_l_baseColor.png",
+      "part": "ellie-bandage-bicep-l",
+      "kind": "baseColor"
+    },
+    {
+      "ok": true,
+      "src": "ellie-bandage/bandage-forearm-normal.tga(1).dds",
+      "out": "assets/textures/characters/ellie_seattle/runtime/ellie_bandage_bicep_l_normal.png",
+      "uri": "../../../textures/characters/ellie_seattle/runtime/ellie_bandage_bicep_l_normal.png",
+      "part": "ellie-bandage-bicep-l",
+      "kind": "normal"
+    },
+    {
+      "ok": true,
+      "src": "ellie-bandage/bandage-forearm-color.tga(1).dds",
+      "out": "assets/textures/characters/ellie_seattle/runtime/ellie_bandage_forearm_r_baseColor.png",
+      "uri": "../../../textures/characters/ellie_seattle/runtime/ellie_bandage_forearm_r_baseColor.png",
+      "part": "ellie-bandage-forearm-r",
+      "kind": "baseColor"
+    },
+    {
+      "ok": true,
+      "src": "ellie-bandage/bandage-forearm-normal.tga(1).dds",
+      "out": "assets/textures/characters/ellie_seattle/runtime/ellie_bandage_forearm_r_normal.png",
+      "uri": "../../../textures/characters/ellie_seattle/runtime/ellie_bandage_forearm_r_normal.png",
+      "part": "ellie-bandage-forearm-r",
+      "kind": "normal"
+    },
+    {
+      "ok": true,
+      "src": "ellie-body/ellie-denimshirt-tuck-color.tga(1).dds",
+      "out": "assets/textures/characters/ellie_seattle/runtime/ellie_body_baseColor.png",
+      "uri": "../../../textures/characters/ellie_seattle/runtime/ellie_body_baseColor.png",
+      "part": "ellie-body",
+      "kind": "baseColor"
+    },
+    {
+      "ok": true,
+      "src": "ellie-body/ellie-denimshirt-tuck-normal.tga(1).dds",
+      "out": "assets/textures/characters/ellie_seattle/runtime/ellie_body_normal.png",
+      "uri": "../../../textures/characters/ellie_seattle/runtime/ellie_body_normal.png",
+      "part": "ellie-body",
+      "kind": "normal"
+    },
+    {
+      "ok": true,
+      "src": "ellie-bracelet/dina-bracelet-color.tga(1).dds",
+      "out": "assets/textures/characters/ellie_seattle/runtime/ellie_bracelet_baseColor.png",
+      "uri": "../../../textures/characters/ellie_seattle/runtime/ellie_bracelet_baseColor.png",
+      "part": "ellie-bracelet",
+      "kind": "baseColor"
+    },
+    {
+      "ok": true,
+      "src": "ellie-bracelet/dina-bracelet-normal.tga(1).dds",
+      "out": "assets/textures/characters/ellie_seattle/runtime/ellie_bracelet_normal.png",
+      "uri": "../../../textures/characters/ellie_seattle/runtime/ellie_bracelet_normal.png",
+      "part": "ellie-bracelet",
+      "kind": "normal"
+    },
+    {
+      "ok": true,
+      "src": "ellie-hair-cloth/ellie-hair-thick-color-new.tga(1).dds",
+      "out": "assets/textures/characters/ellie_seattle/runtime/ellie_hair_cloth_baseColor.png",
+      "uri": "../../../textures/characters/ellie_seattle/runtime/ellie_hair_cloth_baseColor.png",
+      "part": "ellie-hair-cloth",
+      "kind": "baseColor"
+    },
+    {
+      "ok": true,
+      "src": "ellie-hair-cloth/ellie-hair-thick-normal.tga(1).dds",
+      "out": "assets/textures/characters/ellie_seattle/runtime/ellie_hair_cloth_normal.png",
+      "uri": "../../../textures/characters/ellie_seattle/runtime/ellie_hair_cloth_normal.png",
+      "part": "ellie-hair-cloth",
+      "kind": "normal"
+    },
+    {
+      "ok": true,
+      "src": "ellie-head/ellie-head-seattle-color.tga(1).dds",
+      "out": "assets/textures/characters/ellie_seattle/runtime/ellie_head_baseColor.png",
+      "uri": "../../../textures/characters/ellie_seattle/runtime/ellie_head_baseColor.png",
+      "part": "ellie-head",
+      "kind": "baseColor"
+    },
+    {
+      "ok": true,
+      "src": "ellie-head/ellie-head-normal.tga(1).dds",
+      "out": "assets/textures/characters/ellie_seattle/runtime/ellie_head_normal.png",
+      "uri": "../../../textures/characters/ellie_seattle/runtime/ellie_head_normal.png",
+      "part": "ellie-head",
+      "kind": "normal"
+    },
+    {
+      "ok": true,
+      "src": "ellie-body/ellie-denimshirt-tuck-color.tga(1).dds",
+      "out": "assets/textures/characters/ellie_seattle/runtime/ellie_jacket_cloth_baseColor.png",
+      "uri": "../../../textures/characters/ellie_seattle/runtime/ellie_jacket_cloth_baseColor.png",
+      "part": "ellie-jacket-cloth",
+      "kind": "baseColor"
+    },
+    {
+      "ok": true,
+      "src": "ellie-body/ellie-denimshirt-detail-normal.tga(1).dds",
+      "out": "assets/textures/characters/ellie_seattle/runtime/ellie_jacket_cloth_normal.png",
+      "uri": "../../../textures/characters/ellie_seattle/runtime/ellie_jacket_cloth_normal.png",
+      "part": "ellie-jacket-cloth",
+      "kind": "normal"
+    },
+    {
+      "ok": true,
+      "src": "ellie-leg-holster/ellie-holster-sec-color.tga(1).dds",
+      "out": "assets/textures/characters/ellie_seattle/runtime/ellie_leg_holster_r_baseColor.png",
+      "uri": "../../../textures/characters/ellie_seattle/runtime/ellie_leg_holster_r_baseColor.png",
+      "part": "ellie-leg-holster-r",
+      "kind": "baseColor"
+    },
+    {
+      "ok": true,
+      "src": "ellie-leg-holster/ellie-holster-sec-normal.tga(1).dds",
+      "out": "assets/textures/characters/ellie_seattle/runtime/ellie_leg_holster_r_normal.png",
+      "uri": "../../../textures/characters/ellie_seattle/runtime/ellie_leg_holster_r_normal.png",
+      "part": "ellie-leg-holster-r",
+      "kind": "normal"
+    }
+  ],
+  "skeleton": {
+    "chestNode": "Ellie_Core_Chest",
+    "neckNode": "Ellie_Core_Neck",
+    "headNode": "Ellie_Core_Head",
+    "rightHandNode": "Ellie_Arm_R_Hand_Palm",
+    "leftHandNode": "Ellie_Arm_L_Hand_Palm"
+  }
+}

@@ -109,6 +109,22 @@
       "sounds": [
         "/reveal.ogg"
       ]
+    },
+    {
+      "event": "chop",
+      "package": "",
+      "settings": {
+        "volume": 2.0,
+        "positional": false,
+        "pitch": 1.0,
+        "dataType": "Buffer",
+        "cooldown": 0.08
+      },
+      "sounds": [
+        "/chop1.ogg",
+        "/chop2.ogg",
+        "/chop3.ogg"
+      ]
     }
   ],
   "music": [

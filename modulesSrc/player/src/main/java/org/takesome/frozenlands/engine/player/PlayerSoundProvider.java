@@ -1,25 +1,31 @@
 package org.takesome.frozenlands.engine.player;
 
-import com.jme3.audio.AudioNode;
 import org.takesome.frozenlands.engine.EngineContext;
-import org.takesome.frozenlands.engine.providers.sound.SoundProvider;
+import org.takesome.frozenlands.engine.events.EngineEventTopics;
 
-import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class PlayerSoundProvider extends SoundProvider {
-
-    private Map<String, List<AudioNode>> playerSounds;
+public final class PlayerSoundProvider {
+    private final EngineContext engineContext;
 
     public PlayerSoundProvider(EngineContext kernelInterface) {
-        super(kernelInterface);
-        playerSounds = kernelInterface.requireService(SoundProvider.class).getSoundBlock("player");
+        this.engineContext = kernelInterface;
     }
 
-    public void playSound(String sound){
-        List<AudioNode> eventSounds = playerSounds.get(sound);
-        if(eventSounds != null) {
-            this.getRandomAudioNode(eventSounds).play();
+    public boolean playSound(String sound) {
+        return requestSound(sound, "player.sound.provider");
+    }
+
+    public boolean requestSound(String sound, String source) {
+        if (sound == null || sound.isBlank()) {
+            return false;
         }
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("block", "player");
+        payload.put("event", sound);
+        payload.put("source", source == null || source.isBlank() ? "player" : source);
+        engineContext.getModuleRegistry().publishEvent(EngineEventTopics.ENGINE_SOUND_PLAY_REQUESTED, payload);
+        return true;
     }
 }

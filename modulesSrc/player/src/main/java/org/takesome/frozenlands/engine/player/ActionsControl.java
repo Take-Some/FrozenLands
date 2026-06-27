@@ -11,12 +11,16 @@ import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
+import org.takesome.frozenlands.engine.events.EngineEventTopics;
+
+import java.util.Map;
 
 public class ActionsControl extends AbstractControl {
     private final Player playerInterface;
     private final PlayerSoundProvider playerSoundProvider;
     private boolean ready = false;
     private BetterCharacterControl character;
+    private boolean wasOnGround = true;
 
     public ActionsControl(Player playerInterface) {
         this.playerInterface = playerInterface;
@@ -38,7 +42,6 @@ public class ActionsControl extends AbstractControl {
     }
 
     public Spatial shot(AssetManager assetManager, Vector3f pos, Vector3f direction, Node parent, PhysicsSpace phy) {
-
         Node bullet = new Node("bullet");
         parent.attachChild(bullet);
 
@@ -48,38 +51,33 @@ public class ActionsControl extends AbstractControl {
         phy.add(rb);
         rb.setGravity(Vector3f.ZERO);
         rb.setPhysicsLocation(pos);
-
         rb.setLinearVelocity(direction.mult(10f));
-        playerSoundProvider.playSound("action");
         return bullet;
     }
-
-    private float t = 0;
-    private boolean wasOnGround = true;
 
     @Override
     protected void controlUpdate(float tpf) {
         initialize();
-        if (!ready) return;
-
-        if (character != null && playerSoundProvider != null) {
-            if (!character.isOnGround() && wasOnGround) {
-                playerSoundProvider.playSound("jump/takeoff");
-            }
-            if (character.isOnGround() && !wasOnGround) {
-                playerSoundProvider.playSound("jump/land");
-            }
-            wasOnGround = character.isOnGround();
-
-            boolean walking = (character.isOnGround() && character.getVelocity().length() > 0.1);
-            if (walking) {
-                t += tpf;
-                if (t > 0.3) {
-                    t = 0;
-                    playerSoundProvider.playSound(playerInterface.getUserInputHandler().getPlayerState().toString().toLowerCase());
-                }
-            }
+        if (!ready || character == null || playerSoundProvider == null) {
+            return;
         }
+
+        boolean onGround = character.isOnGround();
+        if (!onGround && wasOnGround) {
+            playerInterface.publishEvent(EngineEventTopics.PLAYER_TAKEOFF, Map.of(
+                    "playerRef", playerInterface.runtimeId(),
+                    "velocityY", character.getVelocity().y,
+                    "tpf", tpf
+            ));
+        }
+        if (onGround && !wasOnGround) {
+            playerInterface.publishEvent(EngineEventTopics.PLAYER_LANDED, Map.of(
+                    "playerRef", playerInterface.runtimeId(),
+                    "velocityY", character.getVelocity().y,
+                    "tpf", tpf
+            ));
+        }
+        wasOnGround = onGround;
     }
 
     @Override

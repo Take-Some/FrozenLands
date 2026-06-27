@@ -1,0 +1,8 @@
+{
+  "profile": {
+    "default": "scripts/lua/frozenlands/terrain/default.lua",
+    "hotPath": "java",
+    "luaAbiVersion": 1
+  },
+  "cache": { "backend": "local-concurrent-map" }
+}

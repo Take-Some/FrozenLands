@@ -1,10 +1,10 @@
 package org.takesome.frozenlands.engine.player;
 
-import com.jme3.bullet.control.BetterCharacterControl;
 import com.jme3.math.Vector3f;
 import org.takesome.frozenlands.engine.EngineContext;
 import org.takesome.frozenlands.engine.modules.EngineModule;
 import org.takesome.frozenlands.engine.modules.ModuleCommand;
+import org.takesome.frozenlands.engine.runtime.RuntimeMaps;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -28,7 +28,7 @@ public final class PlayerModule implements EngineModule {
 
     @Override
     public String description() {
-        return "Player runtime control";
+        return "Player manager, movement, footsteps and runtime control";
     }
 
     @Override
@@ -37,66 +37,63 @@ public final class PlayerModule implements EngineModule {
     }
 
     private void registerCommands() {
-        commands.put("status", ModuleCommand.of("status", "Return player spawn and control status", args -> status()));
-        commands.put("position", ModuleCommand.of("position", "Return player position", args -> position()));
-        commands.put("warp", ModuleCommand.of("warp", "Warp player to coordinates", this::warp));
-    }
-
-    private Map<String, Object> status() {
-        Map<String, Object> result = result("spawned", player() != null);
-        if (player() != null) {
-            result.put("hasCharacterControl", characterControl() != null);
-            result.putAll(position());
-        }
-        return result;
+        commands.put("status", ModuleCommand.of("status", "Return active player manager status", args -> manager().status()));
+        commands.put("manager.status", ModuleCommand.of("manager.status", "Return player manager status", args -> manager().status()));
+        commands.put("position", ModuleCommand.of("position", "Return active player position", args -> position()));
+        commands.put("locomotion", ModuleCommand.of("locomotion", "Return active player locomotion state", args -> locomotion()));
+        commands.put("tool.status", ModuleCommand.of("tool.status", "Return active player tool status", args -> toolStatus()));
+        commands.put("feedback.status", ModuleCommand.of("feedback.status", "Return player feedback router status", args -> feedbackStatus()));
+        commands.put("warp", ModuleCommand.of("warp", "Warp active player to coordinates", this::warp));
     }
 
     private Map<String, Object> position() {
         Player player = player();
         if (player == null) {
-            return result("spawned", false);
+            return RuntimeMaps.result("spawned", false);
         }
         Vector3f position = player.getPlayerPosition();
-        Map<String, Object> result = result("spawned", true);
+        Map<String, Object> result = RuntimeMaps.result("spawned", true);
         result.put("x", position.x);
         result.put("y", position.y);
         result.put("z", position.z);
         return result;
     }
 
-    private Map<String, Object> warp(Map<String, Object> args) {
-        BetterCharacterControl control = characterControl();
-        if (control == null) {
-            return result("warped", false);
+    private Map<String, Object> locomotion() {
+        Player player = player();
+        if (player == null) {
+            return RuntimeMaps.result("spawned", false);
         }
-        Vector3f target = new Vector3f(floatArg(args, "x", 0f), floatArg(args, "y", 0f), floatArg(args, "z", 0f));
-        control.warp(target);
-        context.getModuleRegistry().publishEvent("player.warped", Map.of("x", target.x, "y", target.y, "z", target.z));
-        Map<String, Object> result = result("warped", true);
-        result.put("x", target.x);
-        result.put("y", target.y);
-        result.put("z", target.z);
-        return result;
+        return RuntimeMaps.result("locomotion", player.getLocomotionState().toMap(player.runtimeId()));
     }
 
-    private BetterCharacterControl characterControl() {
+    private Map<String, Object> toolStatus() {
         Player player = player();
-        return player == null ? null : player.getPlayerOptions().getCharacterControl();
+        if (player == null || player.getToolController() == null) {
+            return RuntimeMaps.result("available", false);
+        }
+        return RuntimeMaps.result("tool", player.getToolController().status());
+    }
+
+    private Map<String, Object> feedbackStatus() {
+        return context.findService(PlayerFeedbackRouter.class)
+                .map(PlayerFeedbackRouter::status)
+                .orElseGet(() -> RuntimeMaps.result("available", false));
+    }
+
+    private Map<String, Object> warp(Map<String, Object> args) {
+        Vector3f target = new Vector3f(RuntimeMaps.floating(args, "x", 0f), RuntimeMaps.floating(args, "y", 0f), RuntimeMaps.floating(args, "z", 0f));
+        return manager().warp(target, RuntimeMaps.string(args, "reason", "module-command"));
     }
 
     private Player player() {
-        return context.findService(Player.class).orElse(null);
+        return manager().activePlayer().orElseGet(() -> context.findService(Player.class).orElse(null));
     }
 
-    private float floatArg(Map<String, Object> args, String name, float fallback) {
-        Object value = args == null ? null : args.get(name);
-        return value instanceof Number ? ((Number) value).floatValue() : value == null ? fallback : Float.parseFloat(String.valueOf(value));
+    private PlayerManager manager() {
+        return context.requireService(PlayerManager.class);
     }
 
-    private Map<String, Object> result(String key, Object value) {
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("ok", true);
-        result.put(key, value);
-        return result;
-    }
+
+
 }

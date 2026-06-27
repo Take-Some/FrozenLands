@@ -6,6 +6,7 @@ import org.takesome.frozenlands.engine.modules.ProviderModuleAdapter;
 import org.takesome.frozenlands.engine.providers.material.MaterialProvider;
 import org.takesome.frozenlands.engine.providers.model.ModelProvider;
 import org.takesome.frozenlands.engine.providers.sound.SoundProvider;
+import org.takesome.frozenlands.engine.providers.sound.SoundRegistry;
 import org.takesome.frozenlands.engine.runtime.EngineRuntimeInstaller;
 
 public final class ProviderRuntimeInstaller implements EngineRuntimeInstaller {
@@ -27,6 +28,7 @@ public final class ProviderRuntimeInstaller implements EngineRuntimeInstaller {
         SoundProvider soundProvider = (SoundProvider) registry.register(new SoundProvider(context), context);
         context.getModuleRegistry().register(new ProviderModuleAdapter(soundProvider), context);
         context.registerService(SoundProvider.class, soundProvider);
+        context.registerService("provider.sound.registry", SoundRegistry.class, soundProvider.registry());
 
         MaterialProvider materialProvider = (MaterialProvider) registry.register(new MaterialProvider(context), context);
         context.getModuleRegistry().register(new ProviderModuleAdapter(materialProvider), context);

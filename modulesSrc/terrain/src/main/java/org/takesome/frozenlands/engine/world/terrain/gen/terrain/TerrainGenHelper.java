@@ -4,30 +4,35 @@ import com.jme3.bullet.collision.shapes.HeightfieldCollisionShape;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Spatial;
-import com.jme3.terrain.geomipmap.*;
+import com.jme3.terrain.geomipmap.TerrainGrid;
+import com.jme3.terrain.geomipmap.TerrainGridListener;
+import com.jme3.terrain.geomipmap.TerrainGridLodControl;
+import com.jme3.terrain.geomipmap.TerrainLodControl;
+import com.jme3.terrain.geomipmap.TerrainQuad;
 import com.jme3.terrain.geomipmap.lodcalc.DistanceLodCalculator;
 import org.takesome.frozenlands.engine.EngineContext;
-import org.takesome.frozenlands.engine.config.Constants;
+import org.takesome.frozenlands.engine.gameplay.GrindableCollisionProxyControl;
+import org.takesome.frozenlands.engine.world.terrain.TerrainRuntimeSettings;
 import org.takesome.frozenlands.engine.world.terrain.chunk.TerrainChunkTracker;
 import org.takesome.frozenlands.engine.world.terrain.gen.tree.TreeGen;
 
 import java.util.List;
 
 public class TerrainGenHelper {
-
-    private EngineContext kernelInterface;
-    private  TerrainQuad terrain;
+    private final EngineContext kernelInterface;
+    private final TerrainQuad terrain;
     private final TerrainChunkTracker chunkTracker;
+    private final TerrainRuntimeSettings settings;
 
-    public TerrainGenHelper(EngineContext kernelInterface, TerrainQuad terrain, TerrainChunkTracker chunkTracker){
+    public TerrainGenHelper(EngineContext kernelInterface, TerrainQuad terrain, TerrainChunkTracker chunkTracker) {
         this.kernelInterface = kernelInterface;
         this.terrain = terrain;
         this.chunkTracker = chunkTracker;
+        this.settings = new TerrainRuntimeSettings();
     }
 
     void setupScale() {
-        terrain.setLocalScale(Constants.TERRAIN_SCALE_X, Constants.TERRAIN_SCALE_Y,
-                Constants.TERRAIN_SCALE_Z);
+        terrain.setLocalScale(settings.scaleX(), settings.scaleY(), settings.scaleZ());
     }
 
     void setupPosition() {
@@ -35,10 +40,8 @@ public class TerrainGenHelper {
     }
 
     void setUpLODControl() {
-        TerrainLodControl control =
-                new TerrainGridLodControl(this.terrain, kernelInterface.getCamera());
-        control.setLodCalculator(
-                new DistanceLodCalculator(Constants.TERRAIN_LOD_PATCH_SIZE, Constants.TERRAIN_LOD_MULTIPLIER));
+        TerrainLodControl control = new TerrainGridLodControl(this.terrain, kernelInterface.getCamera());
+        control.setLodCalculator(new DistanceLodCalculator(settings.lodPatchSize(), settings.lodMultiplier()));
         this.terrain.addControl(control);
     }
 
@@ -46,7 +49,8 @@ public class TerrainGenHelper {
         TreeGen treeGen = new TreeGen(kernelInterface);
         ((TerrainGrid) terrain).addListener(new TerrainGridListener() {
             @Override
-            public void gridMoved(Vector3f newCenter) {}
+            public void gridMoved(Vector3f newCenter) {
+            }
 
             @Override
             public void tileAttached(Vector3f cell, TerrainQuad quad) {
@@ -97,19 +101,27 @@ public class TerrainGenHelper {
             quad.removeControl(RigidBodyControl.class);
         }
 
-        List<Spatial> quadForest = quad.getUserData("quadForest");
-        if (quadForest == null || quadForest.isEmpty()) {
+        List<Spatial> quadAssets = quad.getUserData(TreeGen.QUAD_ASSET_USER_DATA);
+        if (quadAssets == null || quadAssets.isEmpty()) {
+            quadAssets = quad.getUserData(TreeGen.LEGACY_QUAD_FOREST_USER_DATA);
+        }
+        if (quadAssets == null || quadAssets.isEmpty()) {
             return;
         }
 
-        for (Spatial treeNode : quadForest) {
-            RigidBodyControl treeControl = treeNode.getControl(RigidBodyControl.class);
+        for (Spatial assetNode : quadAssets) {
+            RigidBodyControl treeControl = assetNode.getControl(RigidBodyControl.class);
             if (treeControl != null) {
                 kernelInterface.getBulletAppState().getPhysicsSpace().remove(treeControl);
-                treeNode.removeControl(RigidBodyControl.class);
+                assetNode.removeControl(RigidBodyControl.class);
             }
-            treeNode.removeFromParent();
-            kernelInterface.getLogger().debug("Detached tree " + treeNode.hashCode() + treeNode.getLocalTranslation().toString());
+            GrindableCollisionProxyControl proxyControl = assetNode.getControl(GrindableCollisionProxyControl.class);
+            if (proxyControl != null) {
+                proxyControl.detachProxy();
+                assetNode.removeControl(proxyControl);
+            }
+            assetNode.removeFromParent();
+            kernelInterface.getLogger().debug("Detached terrain asset {} at {}", assetNode.hashCode(), assetNode.getLocalTranslation());
         }
     }
 }

@@ -13,7 +13,6 @@ import com.jme3.scene.Node;
 import org.slf4j.Logger;
 import org.takesome.frozenlands.FrozenLands;
 import org.takesome.frozenlands.engine.core.CoreModule;
-import org.takesome.frozenlands.engine.core.LuaEventHookState;
 import org.takesome.frozenlands.engine.core.console.ConsoleCursorPolicyState;
 import org.takesome.frozenlands.engine.core.console.ConsoleInteractionPolicyState;
 import org.takesome.frozenlands.engine.core.console.CoreConsoleState;
@@ -21,9 +20,11 @@ import org.takesome.frozenlands.engine.lua.RuntimeManifestReporter;
 import org.takesome.frozenlands.engine.modules.ModuleRegistry;
 import org.takesome.frozenlands.engine.providers.ProviderRegistry;
 import org.takesome.frozenlands.engine.runtime.EngineRuntimeInstaller;
+import org.takesome.frozenlands.engine.services.EngineServicePool;
+import org.takesome.frozenlands.engine.tasks.EngineTaskPool;
+import org.takesome.frozenlands.engine.ui.html.HtmlUiState;
 
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -36,7 +37,14 @@ public class Kernel extends BaseAppState implements EngineContext {
     private final ProviderRegistry providerRegistry;
     private final ModuleRegistry moduleRegistry;
     private final CoreModule coreModule;
-    private final Map<Class<?>, Object> services = new LinkedHashMap<>();
+    private final EngineTaskPool taskPool;
+    private final EngineServicePool servicePool;
+    private final List<EngineRuntimeInstaller> runtimeInstallers;
+
+    private StartupPhase startupPhase = StartupPhase.RUNTIME_MODULES;
+    private int runtimeInstallerIndex;
+    private boolean runtimeInstallerAnnounced;
+    private boolean startupComplete;
 
     public Kernel(FrozenLands frozenLands) {
         this.frozenLands = frozenLands;
@@ -44,24 +52,58 @@ public class Kernel extends BaseAppState implements EngineContext {
         this.logger = frozenLands.getLogger();
         this.providerRegistry = new ProviderRegistry();
         this.moduleRegistry = new ModuleRegistry();
+        this.servicePool = new EngineServicePool(logger);
+        this.taskPool = new EngineTaskPool(this);
         this.coreModule = new CoreModule(this);
 
-        registerService(ProviderRegistry.class, providerRegistry);
-        registerService(ModuleRegistry.class, moduleRegistry);
-        registerService(CoreModule.class, coreModule);
-
+        frozenLands.reportStartupProgress("Preparing module registry", 0.54f);
+        registerService("core.providers", ProviderRegistry.class, providerRegistry);
+        registerService("core.modules", ModuleRegistry.class, moduleRegistry);
+        registerService("core.services", EngineServicePool.class, servicePool);
+        registerService("core.tasks", EngineTaskPool.class, taskPool);
         moduleRegistry.register(coreModule, this);
-        installRuntimeModules();
-        attachCoreAppStates();
-        runCoreAutoRunScripts();
-        RuntimeManifestReporter.reportIfRequested(this);
-        if (Boolean.getBoolean("frozenlands.runtimeManifestExit")) {
-            frozenLands.stop();
-        }
+        runtimeInstallers = discoverRuntimeInstallers();
     }
 
-    private void installRuntimeModules() {
-        List<EngineRuntimeInstaller> installers = ServiceLoader.load(EngineRuntimeInstaller.class)
+    public boolean continueStartup() {
+        if (startupComplete) {
+            return true;
+        }
+
+        switch (startupPhase) {
+            case RUNTIME_MODULES:
+                installNextRuntimeModuleStep();
+                break;
+            case CORE_STATES:
+                frozenLands.reportStartupProgress("Attaching core states", 0.88f);
+                attachCoreAppStates();
+                startupPhase = StartupPhase.AUTORUN;
+                break;
+            case AUTORUN:
+                frozenLands.reportStartupProgress("Running startup scripts", 0.91f);
+                runCoreAutoRunScripts();
+                startupPhase = StartupPhase.MANIFEST;
+                break;
+            case MANIFEST:
+                frozenLands.reportStartupProgress("Reporting runtime manifest", 0.93f);
+                RuntimeManifestReporter.reportIfRequested(this);
+                if (Boolean.getBoolean("frozenlands.runtimeManifestExit")) {
+                    frozenLands.stop();
+                }
+                startupPhase = StartupPhase.COMPLETE;
+                startupComplete = true;
+                frozenLands.reportStartupProgress("Runtime ready", 0.95f);
+                break;
+            case COMPLETE:
+            default:
+                startupComplete = true;
+                break;
+        }
+        return startupComplete;
+    }
+
+    private List<EngineRuntimeInstaller> discoverRuntimeInstallers() {
+        return ServiceLoader.load(EngineRuntimeInstaller.class)
                 .stream()
                 .map(ServiceLoader.Provider::get)
                 .sorted(Comparator
@@ -69,18 +111,44 @@ public class Kernel extends BaseAppState implements EngineContext {
                         .thenComparing(EngineRuntimeInstaller::id)
                         .thenComparing(installer -> installer.getClass().getName()))
                 .toList();
+    }
 
-        for (EngineRuntimeInstaller installer : installers) {
-            logger.info("Installing FrozenLands runtime module: {} [{}]", installer.id(), installer.getClass().getName());
-            installer.install(this);
+    private void installNextRuntimeModuleStep() {
+        if (runtimeInstallers.isEmpty()) {
+            frozenLands.reportStartupProgress("No runtime modules discovered", 0.86f);
+            startupPhase = StartupPhase.CORE_STATES;
+            return;
         }
+        if (runtimeInstallerIndex >= runtimeInstallers.size()) {
+            frozenLands.reportStartupProgress("Runtime modules ready", 0.86f);
+            startupPhase = StartupPhase.CORE_STATES;
+            return;
+        }
+
+        EngineRuntimeInstaller installer = runtimeInstallers.get(runtimeInstallerIndex);
+        float baseProgress = 0.58f;
+        float moduleProgressSpan = 0.28f;
+        float before = baseProgress + moduleProgressSpan * runtimeInstallerIndex / runtimeInstallers.size();
+        float after = baseProgress + moduleProgressSpan * (runtimeInstallerIndex + 1) / runtimeInstallers.size();
+
+        if (!runtimeInstallerAnnounced) {
+            frozenLands.reportStartupProgress("Loading module " + installer.id(), before);
+            runtimeInstallerAnnounced = true;
+            return;
+        }
+
+        logger.info("Installing FrozenLands runtime module: {} [{}]", installer.id(), installer.getClass().getName());
+        installer.install(this);
+        frozenLands.reportStartupProgress("Loaded module " + installer.id(), after);
+        runtimeInstallerIndex++;
+        runtimeInstallerAnnounced = false;
     }
 
     private void attachCoreAppStates() {
         appStateManager().attach(new ConsoleInteractionPolicyState(this));
         appStateManager().attach(new ConsoleCursorPolicyState(this));
         appStateManager().attach(new CoreConsoleState(this));
-        appStateManager().attach(new LuaEventHookState(this));
+        appStateManager().attach(new HtmlUiState(this));
     }
 
     private void runCoreAutoRunScripts() {
@@ -100,6 +168,7 @@ public class Kernel extends BaseAppState implements EngineContext {
 
     @Override
     protected void cleanup(Application application) {
+        taskPool.close();
     }
 
     @Override
@@ -180,21 +249,44 @@ public class Kernel extends BaseAppState implements EngineContext {
     }
 
     @Override
-    public synchronized <T> void registerService(Class<T> serviceType, T service) {
-        if (serviceType == null) {
-            throw new IllegalArgumentException("serviceType must not be null");
-        }
-        if (service == null) {
-            throw new IllegalArgumentException("service must not be null: " + serviceType.getName());
-        }
-        services.put(serviceType, serviceType.cast(service));
+    public EngineTaskPool getTaskPool() {
+        return taskPool;
     }
 
     @Override
-    public synchronized <T> Optional<T> findService(Class<T> serviceType) {
-        if (serviceType == null) {
-            return Optional.empty();
-        }
-        return Optional.ofNullable(services.get(serviceType)).map(serviceType::cast);
+    public EngineServicePool getServicePool() {
+        return servicePool;
+    }
+
+    @Override
+    public <T> void registerService(Class<T> serviceType, T service) {
+        servicePool.register(serviceType, service);
+    }
+
+    @Override
+    public <T> void registerService(String serviceId, Class<T> serviceType, T service) {
+        servicePool.register(serviceId, serviceType, service);
+    }
+
+    public <T> void registerService(String serviceId, Class<T> serviceType, T service, String source) {
+        servicePool.register(serviceId, serviceType, service, source);
+    }
+
+    @Override
+    public <T> Optional<T> findService(Class<T> serviceType) {
+        return servicePool.find(serviceType);
+    }
+
+    @Override
+    public <T> Optional<T> findService(String serviceId, Class<T> serviceType) {
+        return servicePool.find(serviceId, serviceType);
+    }
+
+    private enum StartupPhase {
+        RUNTIME_MODULES,
+        CORE_STATES,
+        AUTORUN,
+        MANIFEST,
+        COMPLETE
     }
 }

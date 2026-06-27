@@ -13,9 +13,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public final class PlayerHeadTurnController extends AbstractControl implements AutoCloseable {
-    private static final String CHEST_NODE = "Sarah_Core_Chest";
-    private static final String NECK_NODE = "Sarah_Core_Neck";
-    private static final String HEAD_NODE = "Sarah_Core_Head";
     private static final float SPRING_STIFFNESS = 78f;
     private static final float SPRING_DAMPING = 13f;
     private static final float INPUT_IMPULSE = 1.8f;
@@ -23,6 +20,7 @@ public final class PlayerHeadTurnController extends AbstractControl implements A
     private static final float ACTIVE_EPSILON = 0.001f;
 
     private final Player player;
+    private final PlayerRuntimeSettings settings;
     private final int playerRef;
     private final Quaternion baseChestRotation = new Quaternion();
     private final Quaternion baseHeadRotation = new Quaternion();
@@ -45,6 +43,7 @@ public final class PlayerHeadTurnController extends AbstractControl implements A
 
     public PlayerHeadTurnController(Player player) {
         this.player = player;
+        this.settings = player.getRuntimeSettings();
         this.playerRef = player.runtimeId();
     }
 
@@ -64,11 +63,12 @@ public final class PlayerHeadTurnController extends AbstractControl implements A
         if (ready) {
             return;
         }
-        chest = findNamedSpatial(spatial, CHEST_NODE);
-        head = findNamedSpatial(spatial, HEAD_NODE);
-        neck = findNamedSpatial(spatial, NECK_NODE);
+        chest = findNamedSpatial(spatial, settings.skeletonChestNode());
+        head = findNamedSpatial(spatial, settings.skeletonHeadNode());
+        neck = findNamedSpatial(spatial, settings.skeletonNeckNode());
         if (head == null || neck == null) {
-            player.getLogger().warn("Player head turn controller cannot find head/neck nodes chest={} head={} neck={}", chest, head, neck);
+            player.getLogger().warn("Player head turn controller cannot find head/neck nodes expectedChest={} expectedHead={} expectedNeck={} chest={} head={} neck={}",
+                    settings.skeletonChestNode(), settings.skeletonHeadNode(), settings.skeletonNeckNode(), chest, head, neck);
             ready = true;
             subscribe();
             return;

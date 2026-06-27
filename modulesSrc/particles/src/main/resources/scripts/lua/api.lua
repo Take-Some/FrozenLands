@@ -8,13 +8,27 @@ local M = {
     "snow.enable",
     "snow.rate",
     "emit",
-    "impact"
+    "impact",
+    "effect.get",
+    "clear"
   }
 }
 
 function M.call(command, args)
   args = args or {}
   return java.callModule(M.id, command, args)
+end
+
+function M.status()
+  return M.call("status", {})
+end
+
+function M.effect(effect)
+  return M.call("effect.get", { effect = effect })
+end
+
+function M.clear()
+  return M.call("clear", {})
 end
 
 function M.emit(effect, x, y, z)

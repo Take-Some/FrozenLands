@@ -19,5 +19,25 @@
     "shadowZExtend": 180.0,
     "shadowIntensity": 0.45,
     "edgesThickness": 3
+  },
+  "pipeline": {
+    "enabled": true
+  },
+  "effects": {
+    "bloom": {
+      "enabled": true
+    },
+    "lightScattering": {
+      "enabled": true
+    },
+    "dof": {
+      "enabled": true
+    },
+    "shadows": {
+      "enabled": true
+    },
+    "fxaa": {
+      "enabled": true
+    }
   }
 }

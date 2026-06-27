@@ -1,6 +1,5 @@
 package org.takesome.frozenlands.engine.world.terrain.gen.terrain;
 
-import com.jme3.asset.AssetManager;
 import com.jme3.material.Material;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.queue.RenderQueue;
@@ -18,13 +17,12 @@ import com.jme3.terrain.noise.filter.SmoothFilter;
 import com.jme3.terrain.noise.fractal.FractalSum;
 import com.jme3.terrain.noise.modulator.NoiseModulator;
 import org.takesome.frozenlands.engine.EngineContext;
-import org.takesome.frozenlands.engine.config.Constants;
-import org.takesome.frozenlands.engine.world.terrain.chunk.TerrainChunkTracker;
 import org.takesome.frozenlands.engine.providers.material.MaterialProvider;
+import org.takesome.frozenlands.engine.world.terrain.TerrainRuntimeSettings;
+import org.takesome.frozenlands.engine.world.terrain.chunk.TerrainChunkTracker;
 
 public class TerrainGen {
-    private AssetManager assetManager;
-    private  EngineContext kernelInterface;
+    private final EngineContext kernelInterface;
     private TerrainGenHelper terrainGenHelper;
     private FractalSum base;
     private PerturbFilter perturb;
@@ -32,16 +30,16 @@ public class TerrainGen {
     private SmoothFilter smooth;
     private IterativeFilter iterate;
     private final TerrainChunkTracker chunkTracker;
+    private final TerrainRuntimeSettings settings;
 
-    public TerrainGen(EngineContext kernelInterface, TerrainChunkTracker chunkTracker){
+    public TerrainGen(EngineContext kernelInterface, TerrainChunkTracker chunkTracker) {
         this.kernelInterface = kernelInterface;
-        this.assetManager = kernelInterface.getAssetManager();
         this.chunkTracker = chunkTracker;
+        this.settings = new TerrainRuntimeSettings();
     }
 
-    public TerrainQuad generateTerrain(float baseRoughness,float baseFrequency, float baseAmplitude, float baseLacunarity, int baseOctaves, float baseScale) {
-        TerrainQuad terrain;
-        Material matTerrain = this.kernelInterface.requireService(MaterialProvider.class).getMaterial("terrain#default");
+    public TerrainQuad generateTerrain(float baseRoughness, float baseFrequency, float baseAmplitude, float baseLacunarity, int baseOctaves, float baseScale) {
+        Material matTerrain = this.kernelInterface.requireService(MaterialProvider.class).getMaterial(settings.terrainMaterial());
 
         this.base = new FractalSum();
         this.base.setRoughness(baseRoughness);
@@ -56,25 +54,30 @@ public class TerrainGen {
         FilteredBasis ground = new FilteredBasis(this.base);
 
         this.perturb = new PerturbFilter();
-        this.perturb.setMagnitude(0.419f);
+        this.perturb.setMagnitude(settings.perturbMagnitude());
 
         this.therm = new OptimizedErode();
-        this.therm.setRadius(1);
-        this.therm.setTalus(0.711f);
+        this.therm.setRadius(settings.erosionRadius());
+        this.therm.setTalus(settings.erosionTalus());
 
         this.smooth = new SmoothFilter();
-        this.smooth.setRadius(1);
-        this.smooth.setEffect(0.7f);
+        this.smooth.setRadius(settings.terrainSmoothRadius());
+        this.smooth.setEffect(settings.terrainSmoothEffect());
 
         this.iterate = new IterativeFilter();
         this.iterate.addPreFilter(this.perturb);
         this.iterate.addPostFilter(this.smooth);
         this.iterate.setFilter(this.therm);
-        this.iterate.setIterations(1);
+        this.iterate.setIterations(settings.filterIterations());
 
         ground.addPreFilter(this.iterate);
 
-        terrain = new TerrainGrid("terrain", Constants.TERRAIN_PATCH_SIZE, Constants.TERRAIN_QUAD_SIZE, new FractalTileLoader(ground, Constants.TERRAIN_TILE_NOISE_SCALE)) {
+        TerrainQuad terrain = new TerrainGrid(
+                "terrain",
+                settings.patchSize(),
+                settings.quadSize(),
+                new FractalTileLoader(ground, settings.tileNoiseScale())
+        ) {
             private boolean isNeighbour(int quadIndex) {
                 return quadIndex == 0 || quadIndex == 1 || quadIndex == 2
                         || quadIndex == 3 || quadIndex == 4 || quadIndex == 8
@@ -94,13 +97,12 @@ public class TerrainGen {
                             int quadIdx = i * 4 + j;
                             final Vector3f quadCell = location.add(quadIndex[quadIdx]);
                             TerrainQuad q = cache.get(quadCell);
-                            if (q == null) {
-                                if (getGridTileLoader() != null) {
-                                    q = getGridTileLoader().getTerrainQuadAt(quadCell);
-                                    if (q.getMaterial() == null)
-                                        q.setMaterial(material.clone());
-                                    kernelInterface.getLogger().info("Loaded TerrainQuad "+q.getName()+" from TerrainQuadGrid");
+                            if (q == null && getGridTileLoader() != null) {
+                                q = getGridTileLoader().getTerrainQuadAt(quadCell);
+                                if (q.getMaterial() == null) {
+                                    q.setMaterial(material.clone());
                                 }
+                                kernelInterface.getLogger().debug("Loaded TerrainQuad {} from TerrainQuadGrid", q.getName());
                             }
                             cache.put(quadCell, q);
 
@@ -116,7 +118,7 @@ public class TerrainGen {
                                 } else {
                                     getControl(UpdateControl.class).enqueue(() -> {
                                         removeQuad(newQuad);
-                                       kernelInterface.getLogger().info("Unloaded TerrainQuad "+newQuad.getQuadrant()+" from TerrainQuadGrid");
+                                        kernelInterface.getLogger().info("Unloaded TerrainQuad " + newQuad.getQuadrant() + " from TerrainQuadGrid");
                                         return null;
                                     });
                                 }
@@ -149,15 +151,15 @@ public class TerrainGen {
                 int xMax = 4;
                 int yMin = 0;
                 int yMax = 4;
-                if (dx == -1) { // camera moved to -X direction
+                if (dx == -1) {
                     xMax = 3;
-                } else if (dx == 1) { // camera moved to +X direction
+                } else if (dx == 1) {
                     xMin = 1;
                 }
 
-                if (dy == -1) { // camera moved to -Y direction
+                if (dy == -1) {
                     yMax = 3;
-                } else if (dy == 1) { // camera moved to +Y direction
+                } else if (dy == 1) {
                     yMin = 1;
                 }
 
@@ -170,7 +172,7 @@ public class TerrainGen {
                 if (cacheExecutor == null) {
                     cacheExecutor = createExecutorService();
                 }
-                kernelInterface.getLogger().debug("TerrainGrid camera cell " + camCell);
+                kernelInterface.getLogger().debug("TerrainGrid camera cell {}", camCell);
                 cacheExecutor.submit(new UpdateQuadCacheRpg(camCell));
 
                 this.currentCamCell = camCell;

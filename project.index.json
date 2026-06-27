@@ -149,6 +149,15 @@
       "sourceRoot": "modulesSrc/sky"
     },
     {
+      "id": "frozenlands.terrain",
+      "module": "frozenlands-terrain",
+      "modulePath": "modulesSrc/frozenlands-terrain",
+      "type": "runtime",
+      "role": "runtime",
+      "layer": "runtime",
+      "sourceRoot": "modulesSrc/frozenlands-terrain"
+    },
+    {
       "id": "engine.terrain",
       "module": "terrain",
       "modulePath": "modulesSrc/terrain",

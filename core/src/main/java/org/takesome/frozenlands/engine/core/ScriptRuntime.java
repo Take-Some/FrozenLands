@@ -4,6 +4,7 @@ import org.takesome.frozenlands.engine.EngineContext;
 import org.takesome.frozenlands.engine.lua.LuaRuntimeConfig;
 import org.takesome.frozenlands.engine.lua.LuaScriptExecutor;
 import org.takesome.frozenlands.engine.resources.ModuleIndexCatalog;
+import org.takesome.frozenlands.engine.runtime.RuntimeMaps;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -22,6 +23,7 @@ public final class ScriptRuntime {
     private final LuaScriptExecutor executor;
     private final Map<String, Object> config = runtimeConfig.read(MODULE_ID);
     private final Map<String, Object> scripting = runtimeConfig.map(config, "scripting");
+    private final Map<String, Object> scriptingDefaults = runtimeConfig.map(scripting, "defaults");
 
     public ScriptRuntime(EngineContext context) {
         this.executor = new LuaScriptExecutor(context);
@@ -32,21 +34,23 @@ public final class ScriptRuntime {
         manifest.put("enabled", runtimeConfig.bool(scripting, "enabled", true));
         manifest.put("roots", scriptRoots().stream().map(Path::toString).toList());
         manifest.put("scripts", listScripts());
-        manifest.put("entrypoints", listValue(scripting.get("entrypoints")));
+        manifest.put("entrypoints", RuntimeMaps.list(scripting.get("entrypoints")));
         manifest.put("autoRun", autoRunScripts());
+        manifest.put("scriptExtensions", scriptExtensions());
+        manifest.put("defaults", scriptingDefaults);
         manifest.put("executor", executor.manifest());
         return manifest;
     }
 
     public Map<String, Object> list() {
-        return result("scripts", listScripts());
+        return RuntimeMaps.result("scripts", listScripts());
     }
 
     public Map<String, Object> read(Map<String, Object> arguments) {
-        String script = stringArg(arguments, "script", defaultEntrypoint());
+        String script = RuntimeMaps.string(arguments, "script", defaultEntrypoint());
         Path path = locateScript(script);
         try {
-            Map<String, Object> response = result("script", script);
+            Map<String, Object> response = RuntimeMaps.result("script", script);
             response.put("path", path.toString());
             response.put("source", Files.readString(path, StandardCharsets.UTF_8));
             return response;
@@ -57,14 +61,17 @@ public final class ScriptRuntime {
 
     public Map<String, Object> run(Map<String, Object> arguments) {
         if (!runtimeConfig.bool(scripting, "enabled", true)) {
-            Map<String, Object> response = result("script", stringArg(arguments, "script", defaultEntrypoint()));
+            Map<String, Object> response = RuntimeMaps.result(
+                    "script",
+                    RuntimeMaps.string(arguments, "script", defaultEntrypoint())
+            );
             response.put("ok", false);
             response.put("executed", false);
             response.put("reason", "scripting-disabled");
             return response;
         }
 
-        String script = stringArg(arguments, "script", defaultEntrypoint());
+        String script = RuntimeMaps.string(arguments, "script", defaultEntrypoint());
         Path path = locateScript(script);
         String source = readSource(path);
         Map<String, Object> response = executor.execute(script, path, source, scriptArguments(arguments));
@@ -85,7 +92,7 @@ public final class ScriptRuntime {
     }
 
     public List<Object> autoRunScripts() {
-        return listValue(scripting.get("autoRun"));
+        return RuntimeMaps.list(scripting.get("autoRun"));
     }
 
     private String readSource(Path path) {
@@ -98,19 +105,29 @@ public final class ScriptRuntime {
 
     private List<String> listScripts() {
         List<String> scripts = new ArrayList<>();
+        List<String> extensions = scriptExtensions();
         for (Path root : scriptRoots()) {
             if (!Files.isDirectory(root)) {
                 continue;
             }
             try (var stream = Files.walk(root)) {
                 stream.filter(Files::isRegularFile)
-                        .filter(path -> path.getFileName().toString().endsWith(".lua"))
+                        .filter(path -> matchesScriptExtension(path.getFileName().toString(), extensions))
                         .forEach(path -> scripts.add(root.relativize(path).toString().replace('\\', '/')));
             } catch (IOException e) {
                 throw new IllegalStateException("Failed to scan script root: " + root, e);
             }
         }
         return scripts;
+    }
+
+    private boolean matchesScriptExtension(String fileName, List<String> extensions) {
+        for (String extension : extensions) {
+            if (fileName.endsWith(extension)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Path locateScript(String script) {
@@ -131,9 +148,9 @@ public final class ScriptRuntime {
     }
 
     private List<Path> scriptRoots() {
-        List<Object> roots = listValue(scripting.get("scriptRoots"));
+        List<Object> roots = RuntimeMaps.list(scripting.get("scriptRoots"));
         if (roots.isEmpty()) {
-            roots = List.of("assets/scripts");
+            roots = List.of(runtimeConfig.string(scriptingDefaults, "scriptRoot", "assets/scripts"));
         }
         return roots.stream()
                 .map(String::valueOf)
@@ -141,9 +158,18 @@ public final class ScriptRuntime {
                 .toList();
     }
 
+    private List<String> scriptExtensions() {
+        List<Object> configured = RuntimeMaps.list(scripting.get("scriptExtensions"));
+        if (configured.isEmpty()) {
+            return List.of(".lua");
+        }
+        return configured.stream().map(String::valueOf).toList();
+    }
+
     private String defaultEntrypoint() {
-        List<Object> entrypoints = listValue(scripting.get("entrypoints"));
-        return entrypoints.isEmpty() ? "startup.lua" : String.valueOf(entrypoints.get(0));
+        List<Object> entrypoints = RuntimeMaps.list(scripting.get("entrypoints"));
+        String fallback = runtimeConfig.string(scriptingDefaults, "entrypoint", "startup.lua");
+        return entrypoints.isEmpty() ? fallback : String.valueOf(entrypoints.get(0));
     }
 
     private Map<String, Object> scriptArguments(Map<String, Object> arguments) {
@@ -153,21 +179,5 @@ public final class ScriptRuntime {
         Map<String, Object> copy = new LinkedHashMap<>(arguments);
         copy.remove("script");
         return copy;
-    }
-
-    private List<Object> listValue(Object value) {
-        return value instanceof List<?> list ? new ArrayList<>(list) : List.of();
-    }
-
-    private String stringArg(Map<String, Object> arguments, String key, String fallback) {
-        Object value = arguments == null ? null : arguments.get(key);
-        return value == null ? fallback : String.valueOf(value);
-    }
-
-    private Map<String, Object> result(String key, Object value) {
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("ok", true);
-        result.put(key, value);
-        return result;
     }
 }

@@ -41,12 +41,21 @@ public final class PlayerCameraRig {
         CameraViewMode previous = viewMode;
         viewMode = nextMode == null ? CameraViewMode.FIRST_PERSON : nextMode;
         followControl.setViewMode(viewMode);
-        boolean visualVisible = viewMode.showsPlayerVisual();
-        owner.getPlayerModel().setVisualVisible(visualVisible, owner.getPlayerOptions().getCullHint());
+        boolean visualRequested = viewMode.showsPlayerVisual() || (viewMode == CameraViewMode.FIRST_PERSON && owner.getPlayerOptions().isFirstPersonBodyVisible());
+        boolean visualVisible = owner.getPlayerModel().setVisualVisible(visualRequested, owner.getPlayerOptions().getCullHint());
+        if (visualRequested && !visualVisible) {
+            context.getLogger().warn(
+                    "Player visual request suppressed by skinning guard viewMode={} reason={} details={}",
+                    viewMode,
+                    reason,
+                    owner.getPlayerModel().getVisualGuardReason()
+            );
+        }
         context.getLogger().info(
-                "Player camera view changed: {} -> {} visualVisible={} reason={} transitionSeconds={}",
+                "Player camera view changed: {} -> {} visualRequested={} visualVisible={} reason={} transitionSeconds={}",
                 previous,
                 viewMode,
+                visualRequested,
                 visualVisible,
                 reason,
                 owner.getPlayerOptions().getCameraTransitionSeconds()
@@ -57,7 +66,9 @@ public final class PlayerCameraRig {
                 "to", viewMode.name(),
                 "view", viewMode.name(),
                 "reason", reason == null ? "" : reason,
+                "visualRequested", visualRequested,
                 "visualVisible", visualVisible,
+                "visualSuppressed", visualRequested && !visualVisible,
                 "transitionSeconds", owner.getPlayerOptions().getCameraTransitionSeconds()
         ));
     }

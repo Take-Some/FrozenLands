@@ -48,6 +48,10 @@ public final class ParticleModule implements EngineModule {
                 particleManager.emit(effectArg(args), position(args))));
         commands.put("impact", ModuleCommand.of("impact", "Emit a transient impact particle effect", args ->
                 particleManager.impact(effectArg(args), position(args))));
+        commands.put("effect.get", ModuleCommand.of("effect.get", "Return one particle effect descriptor", args ->
+                particleManager.effectStatus(effectArg(args))));
+        commands.put("clear", ModuleCommand.of("clear", "Remove all active transient particle effects", args ->
+                particleManager.clearEffects()));
     }
 
     private String effectArg(Map<String, Object> args) {

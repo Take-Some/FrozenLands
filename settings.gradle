@@ -14,3 +14,12 @@ if (modulesRoot.isDirectory()) {
                 project(":${dir.name}").projectDir = dir
             }
 }
+
+def htmlDomRoot = file('../HtmlDom')
+if (htmlDomRoot.isDirectory()) {
+    includeBuild(htmlDomRoot) {
+        dependencySubstitution {
+            substitute module('dev.takesome:html-dom-aio') using project(':html-dom-desktop')
+        }
+    }
+}

@@ -70,6 +70,20 @@ public final class ProviderRegistry {
         return eventBus.publish(topic, payload);
     }
 
+    public Map<String, Object> publishEvent(String topic, Map<String, Object> payload,
+                                            String emitter, Map<String, Object> metadata) {
+        return eventBus.publish(topic, payload, emitter, metadata);
+    }
+
+    public Map<String, Object> publishLiveEvent(String topic, Map<String, Object> payload) {
+        return eventBus.publishLive(topic, payload);
+    }
+
+    public Map<String, Object> publishLiveEvent(String topic, Map<String, Object> payload,
+                                                String emitter, Map<String, Object> metadata) {
+        return eventBus.publishLive(topic, payload, emitter, metadata);
+    }
+
     public ProviderEventBus getEventBus() {
         return eventBus;
     }

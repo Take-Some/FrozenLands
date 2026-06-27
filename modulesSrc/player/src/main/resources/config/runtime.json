@@ -18,5 +18,85 @@
   },
   "hud": {
     "enabled": true
+  },
+  "manager": {
+    "publishState": true,
+    "telemetryInterval": 0.25
+  },
+  "footsteps": {
+    "enabled": true,
+    "walkInterval": 0.52,
+    "runInterval": 0.34,
+    "minSpeed": 0.2,
+    "soundEnabled": true,
+    "eventsEnabled": true
+  },
+  "tool": {
+    "enabled": true,
+    "model": "Models/tools/axe/axe.gltf",
+    "scale": 0.45,
+    "forwardOffset": 1.05,
+    "leftOffset": -0.42,
+    "upOffset": -0.5,
+    "rotationX": -22.0,
+    "rotationY": 88.0,
+    "rotationZ": 12.0,
+    "range": 4.25,
+    "damage": 35.0,
+    "swingSeconds": 0.22,
+    "swingArcDegrees": -58.0,
+    "name": "axe",
+    "grindableDefaultHealth": 100.0,
+    "hitSound": "chop",
+    "hitSoundEnabled": true,
+    "attachToHand": false,
+    "handFallbackToCamera": true,
+    "handJoint": "Ellie_Arm_R_Hand_Palm",
+    "handOffsetX": 0.03,
+    "handOffsetY": 0.02,
+    "handOffsetZ": 0.06,
+    "handRotationX": -90.0,
+    "handRotationY": 0.0,
+    "handRotationZ": 90.0
+  },
+  "feedback": {
+    "enabled": true,
+    "soundEnabled": true,
+    "particleEnabled": true,
+    "sounds": {
+      "spawn": "spawn",
+      "footstep.walking": "walking",
+      "footstep.sprinting": "sprinting",
+      "takeoff": "jump/takeoff",
+      "landed": "jump/land",
+      "grindable.hit": "chop"
+    },
+    "particles": {
+      "landed": "snowImpact",
+      "grindable.hit": "woodChop",
+      "grindable.destroyed": "woodBreak"
+    }
+  },
+  "interaction": {
+    "targetType": "grindable",
+    "hitTopic": "player.grindable.hit",
+    "destroyedTopic": "player.grindable.destroyed",
+    "missedTopic": "player.tool.missed",
+    "destroyedFlag": "destroyed",
+    "kinds": {
+      "0": {
+        "name": "generic"
+      },
+      "1": {
+        "name": "tree"
+      }
+    }
+  },
+  "skeleton": {
+    "chestNode": "Ellie_Core_Chest",
+    "neckNode": "Ellie_Core_Neck",
+    "headNode": "Ellie_Core_Head",
+    "rightHandNode": "Ellie_Arm_R_Hand_Palm",
+    "leftHandNode": "Ellie_Arm_L_Hand_Palm"
   }
 }

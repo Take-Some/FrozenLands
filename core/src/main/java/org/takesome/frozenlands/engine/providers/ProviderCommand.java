@@ -1,9 +1,11 @@
 package org.takesome.frozenlands.engine.providers;
 
+import org.takesome.frozenlands.engine.runtime.RuntimeCommand;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public interface ProviderCommand {
+public interface ProviderCommand extends RuntimeCommand {
     String id();
 
     default String description() {

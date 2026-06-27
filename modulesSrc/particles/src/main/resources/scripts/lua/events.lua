@@ -4,6 +4,9 @@ local M = { id = "engine.particles" }
 M.handlers = {
   ["particles.emitted"] = true,
   ["particles.impact"] = true,
+  ["particles.event.emitted"] = true,
+  ["particles.dropped"] = true,
+  ["particles.cleared"] = true,
   ["particles.snow.enabled"] = true,
   ["particles.snow.rate"] = true
 }

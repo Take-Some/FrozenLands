@@ -14,6 +14,7 @@ import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
 import com.jme3.post.FilterPostProcessor;
+import com.jme3.math.ColorRGBA;
 import com.jme3.profile.AppProfiler;
 import com.jme3.renderer.Camera;
 import com.jme3.renderer.RenderManager;
@@ -31,6 +32,7 @@ import org.takesome.frozenlands.engine.Kernel;
 import org.takesome.frozenlands.engine.config.ConfigReader;
 import org.takesome.frozenlands.engine.events.EngineEventTopics;
 import org.takesome.frozenlands.engine.resources.ModuleIndexCatalog;
+import org.takesome.frozenlands.engine.ui.html.HtmlUiState;
 import org.takesome.frozenlands.logging.LoggingBootstrap;
 
 import java.awt.image.BufferedImage;
@@ -59,6 +61,9 @@ public final class FrozenLands implements Application {
     private Map CONFIG;
     private int numSamples;
     private boolean focusPaused;
+    private StartupLoadingScreen startupLoadingScreen;
+    private int startupStage;
+    private boolean startupComplete;
 
     public static void main(String[] args) {
         LoggingBootstrap.install();
@@ -77,12 +82,17 @@ public final class FrozenLands implements Application {
         runtime.gainFocus();
         runtime.enableInput();
         initializeSceneGraph();
-        installFocusToggleMapping();
-        initializeRuntime();
+        initializeStartupLoadingScreen();
+        reportStartupProgress("Opening FrozenLands window", 0.05f);
     }
 
     private void updateRuntimeHost() {
         float tpf = runtime.getTimer().getTimePerFrame();
+        if (!startupComplete) {
+            advanceStartup();
+            renderStartupLoadingFrame();
+            return;
+        }
         runtime.getStateManager().update(tpf);
         rootNode.updateLogicalState(tpf);
         guiNode.updateLogicalState(tpf);
@@ -95,6 +105,7 @@ public final class FrozenLands implements Application {
     }
 
     private void initializeSceneGraph() {
+        runtime.getViewPort().setBackgroundColor(new ColorRGBA(0.025f, 0.035f, 0.052f, 1f));
         rootNode.setCullHint(Spatial.CullHint.Never);
         guiNode.setCullHint(Spatial.CullHint.Never);
         guiNode.setQueueBucket(RenderQueue.Bucket.Gui);
@@ -102,20 +113,100 @@ public final class FrozenLands implements Application {
         runtime.getGuiViewPort().attachScene(guiNode);
     }
 
-    private void initializeRuntime() {
-        registerMutableAssetRoots();
-        CONFIG = new ConfigReader(new String[]{"userInput"}).getCfgMaps();
-        numSamples = runtime.getContext().getSettings().getSamples();
-        bulletAppState = new BulletAppState();
+    private void initializeStartupLoadingScreen() {
+        startupLoadingScreen = new StartupLoadingScreen(runtime.getAssetManager(), guiNode);
+        startupLoadingScreen.show(runtime.getCamera().getWidth(), runtime.getCamera().getHeight());
+    }
 
-        fpp = new FilterPostProcessor(runtime.getAssetManager());
-        if (numSamples > 0) {
-            fpp.setNumSamples(numSamples);
+    public void reportStartupProgress(String stage, float progress) {
+        if (startupLoadingScreen == null) {
+            return;
         }
+        startupLoadingScreen.update(stage, progress, runtime.getCamera().getWidth(), runtime.getCamera().getHeight());
+        renderStartupLoadingFrame();
+    }
 
-        runtime.getStateManager().attach(bulletAppState);
-        kernel = new Kernel(this);
-        runtime.getStateManager().attach(kernel);
+    private void renderStartupLoadingFrame() {
+        if (runtime.getContext() == null || !runtime.getContext().isRenderable()) {
+            return;
+        }
+        rootNode.updateLogicalState(0f);
+        guiNode.updateLogicalState(0f);
+        rootNode.updateGeometricState();
+        guiNode.updateGeometricState();
+        runtime.getRenderManager().render(0f, true);
+    }
+
+    private void hideStartupLoadingScreen() {
+        if (startupLoadingScreen != null) {
+            startupLoadingScreen.hide();
+            startupLoadingScreen = null;
+        }
+    }
+
+    private void advanceStartup() {
+        switch (startupStage) {
+            case 0:
+                reportStartupProgress("Preparing input bindings", 0.10f);
+                installFocusToggleMapping();
+                startupStage++;
+                break;
+            case 1:
+                reportStartupProgress("Registering asset roots", 0.18f);
+                registerMutableAssetRoots();
+                startupStage++;
+                break;
+            case 2:
+                reportStartupProgress("Reading runtime configuration", 0.26f);
+                CONFIG = new ConfigReader(new String[]{"userInput"}).getCfgMaps();
+                numSamples = runtime.getContext().getSettings().getSamples();
+                startupStage++;
+                break;
+            case 3:
+                reportStartupProgress("Starting physics", 0.34f);
+                bulletAppState = new BulletAppState();
+                startupStage++;
+                break;
+            case 4:
+                reportStartupProgress("Preparing post-processing", 0.42f);
+                fpp = new FilterPostProcessor(runtime.getAssetManager());
+                if (numSamples > 0) {
+                    fpp.setNumSamples(numSamples);
+                }
+                startupStage++;
+                break;
+            case 5:
+                reportStartupProgress("Attaching physics state", 0.48f);
+                runtime.getStateManager().attach(bulletAppState);
+                runtime.getStateManager().update(0f);
+                startupStage++;
+                break;
+            case 6:
+                reportStartupProgress("Preparing engine kernel", 0.52f);
+                kernel = new Kernel(this);
+                startupStage++;
+                break;
+            case 7:
+                if (kernel.continueStartup()) {
+                    startupStage++;
+                }
+                break;
+            case 8:
+                reportStartupProgress("Activating engine kernel", 0.96f);
+                runtime.getStateManager().attach(kernel);
+                runtime.getStateManager().update(0f);
+                startupStage++;
+                break;
+            case 9:
+                reportStartupProgress("Entering FrozenLands", 1.0f);
+                hideStartupLoadingScreen();
+                startupComplete = true;
+                startupStage++;
+                break;
+            default:
+                startupComplete = true;
+                break;
+        }
     }
 
     private void installFocusToggleMapping() {
@@ -231,6 +322,10 @@ public final class FrozenLands implements Application {
     @Override public ViewPort getViewPort() { return runtime.getViewPort(); }
 
     private void toggleApplicationFocus() {
+        HtmlUiState htmlUiState = runtime.getStateManager() == null ? null : runtime.getStateManager().getState(HtmlUiState.class);
+        if (htmlUiState != null && htmlUiState.handleEscape()) {
+            return;
+        }
         setApplicationFocusPaused(!focusPaused, "escape");
     }
 

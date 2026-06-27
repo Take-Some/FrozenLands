@@ -13,6 +13,7 @@ import org.takesome.frozenlands.engine.EngineContext;
 import org.takesome.frozenlands.engine.player.camera.PlayerCameraRig;
 import org.takesome.frozenlands.engine.player.input.FPSViewControl;
 import org.takesome.frozenlands.engine.player.input.UserInputHandler;
+import org.takesome.frozenlands.engine.player.menu.PlayerMenuState;
 import org.takesome.frozenlands.engine.resources.ModuleIndexCatalog;
 
 import java.util.Map;
@@ -22,6 +23,8 @@ public class Player extends Node {
     private final EngineContext kernelInterface;
     private final PhysicsSpace pspace;
     private final PlayerOptions playerOptions;
+    private final PlayerRuntimeSettings runtimeSettings;
+    private final PlayerLocomotionState locomotionState = new PlayerLocomotionState();
     private final PlayerSoundProvider playerSoundProvider;
     private final PlayerModel playerModel;
 
@@ -29,17 +32,64 @@ public class Player extends Node {
     private PlayerCameraRig cameraRig;
     private PlayerAnimationController animationController;
     private PlayerHeadTurnController headTurnController;
+    private PlayerToolController toolController;
     private ActionsControl actionsControl;
+    private PlayerMenuState playerMenuState;
 
     public Player(EngineContext kernel) {
         this.kernelInterface = kernel;
         this.pspace = kernel.getBulletAppState().getPhysicsSpace();
         this.playerOptions = PlayerOptions.load(ModuleIndexCatalog.defaultCatalog().configPath(PlayerModule.ID, "playerOptions"));
+        this.runtimeSettings = new PlayerRuntimeSettings();
         this.playerSoundProvider = new PlayerSoundProvider(kernel);
         this.playerModel = new PlayerModel(kernel.getAssetManager(), playerOptions);
+        logModelPipelineDiagnostics();
         this.playerModel.setCullHint(playerOptions.getCullHint());
         this.playerModel.setShadowMode(playerOptions.getShadowMode());
         attachChild(playerModel);
+    }
+
+
+    private void logModelPipelineDiagnostics() {
+        if (playerModel.getSanitizedTangentBufferCount() > 0) {
+            getLogger().warn(
+                    "Player model pipeline sanitized tangent buffers model={} geometries={} buffers={} normalMapsCleared={} reason=skinning-tangent-layout-compatibility",
+                    playerOptions.getModelPath(),
+                    playerModel.getSanitizedTangentGeometryCount(),
+                    playerModel.getSanitizedTangentBufferCount(),
+                    playerModel.getSanitizedNormalMapCount()
+            );
+        }
+
+        PlayerSkinningGuard.RepairResult repair = playerModel.getSkinningRepairResult();
+        if (repair.repaired()) {
+            getLogger().warn(
+                    "Player model multi-skin targets repaired model={} details={}",
+                    playerOptions.getModelPath(),
+                    repair.summary()
+            );
+        } else if (repair.failed()) {
+            getLogger().error(
+                    "Player model multi-skin target repair failed model={} details={}",
+                    playerOptions.getModelPath(),
+                    repair.summary()
+            );
+        }
+
+        PlayerSkinningGuard.Result skinning = playerModel.getSkinningGuardResult();
+        if (skinning.disablesVisual()) {
+            getLogger().error(
+                    "Player model visual disabled by skinning guard model={} details={}",
+                    playerOptions.getModelPath(),
+                    skinning.summary()
+            );
+        } else if (skinning.skinned()) {
+            getLogger().info(
+                    "Player model skinning diagnostics ok model={} details={}",
+                    playerOptions.getModelPath(),
+                    skinning.summary()
+            );
+        }
     }
 
     public void addPlayer(Camera cam, Vector3f spawnPoint) {
@@ -78,26 +128,25 @@ public class Player extends Node {
         actionsControl = new ActionsControl(this);
         addControl(actionsControl);
 
-        userInputHandler = new UserInputHandler(this, () -> actionsControl.shot(
-                kernelInterface.getAssetManager(),
-                cam.getLocation().add(cam.getDirection().mult(1)),
-                cam.getDirection(),
-                kernelInterface.getRootNode(),
-                pspace
-        ));
+        userInputHandler = new UserInputHandler(this, () -> { });
         setPlayerHealth(playerOptions.getInitialHealth());
         addControl(userInputHandler);
         cameraRig = new PlayerCameraRig(this, cam, kernelInterface);
+        toolController = new PlayerToolController(this);
+        addControl(toolController);
         animationController = new PlayerAnimationController(this);
         addControl(animationController);
+        addControl(new PlayerFootstepSystem(this));
         headTurnController = new PlayerHeadTurnController(this);
         playerModel.getPlayerSpatial().addControl(headTurnController);
+        playerMenuState = new PlayerMenuState(this);
+        getStateManager().attach(playerMenuState);
         addControl(new FPSViewControl(FPSViewControl.Mode.WORLD_SCENE));
         logSpawnDiagnostics(cam);
     }
 
     private void onSpawn() {
-        playerSoundProvider.playSound("spawn");
+        // Sound is routed by SoundProvider from PLAYER_SPAWNED.
     }
 
     private void logSpawnDiagnostics(Camera cam) {
@@ -153,15 +202,24 @@ public class Player extends Node {
     public PlayerCameraRig getCameraRig() { return cameraRig; }
     public PlayerAnimationController getAnimationController() { return animationController; }
     public PlayerHeadTurnController getHeadTurnController() { return headTurnController; }
+    public PlayerToolController getToolController() { return toolController; }
     public AssetManager getAssetManager() { return kernelInterface.getAssetManager(); }
     public AppStateManager getStateManager() { return kernelInterface.appStateManager(); }
     public InputManager getInputManager() { return kernelInterface.getInputManager(); }
+    public Camera getCamera() { return kernelInterface.getCamera(); }
+    public PhysicsSpace getPhysicsSpace() { return pspace; }
     public Node getRootNode() { return kernelInterface.getRootNode(); }
     public Node getGuiNode() { return kernelInterface.getGuiNode(); }
     public Map getConfig() { return kernelInterface.getConfig(); }
     public PlayerOptions getPlayerOptions() { return playerOptions; }
+    public PlayerRuntimeSettings getRuntimeSettings() { return runtimeSettings; }
+    public PlayerLocomotionState getLocomotionState() { return locomotionState; }
     public PlayerModel getPlayerModel() { return playerModel; }
     public PlayerSoundProvider getPlayerSoundProvider() { return playerSoundProvider; }
+
+    public void updateLocomotionState(org.takesome.frozenlands.engine.player.input.PlayerState state, Vector3f walkDirection, Vector3f velocity, boolean onGround, boolean running, float currentSpeed) {
+        locomotionState.update(state, walkDirection, velocity, onGround, running, currentSpeed);
+    }
 
     public void setPlayerHealth(int health) {
         playerOptions.setInitialHealth(health);

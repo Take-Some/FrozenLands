@@ -1,13 +1,16 @@
 package org.takesome.frozenlands.engine.player;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.material.Material;
 import com.jme3.bounding.BoundingBox;
 import com.jme3.bounding.BoundingVolume;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
+import com.jme3.scene.Mesh;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.scene.VertexBuffer;
 
 public class PlayerModel extends Node {
     private final PlayerOptions playerOptions;
@@ -15,16 +18,107 @@ public class PlayerModel extends Node {
     private Geometry playerGeometry;
     private Spatial collisionSpatial;
     private PlayerCollisionProfile collisionProfile;
+    private int sanitizedTangentGeometryCount;
+    private int sanitizedTangentBufferCount;
+    private int sanitizedNormalMapCount;
+    private PlayerSkinningGuard.Result skinningGuardResult = PlayerSkinningGuard.Result.notSkinned(0);
+    private PlayerSkinningGuard.RepairResult skinningRepairResult = PlayerSkinningGuard.RepairResult.none("not-run");
 
     public PlayerModel(AssetManager assetManager, PlayerOptions playerOptions) {
         this.playerOptions = playerOptions;
         this.playerSpatial = assetManager.loadModel(playerOptions.getModelPath());
+        sanitizeModelPipeline();
         this.playerSpatial.setLocalScale(playerOptions.getScale());
         attachChild(playerSpatial);
+        refreshModelBounds();
+        alignVisualFeetToNodeOrigin();
         refreshModelBounds();
         this.playerGeometry = findFirstGeometry(playerSpatial);
         this.collisionSpatial = findNamedSpatial(playerSpatial, playerOptions.getCollisionSourceNode());
         this.collisionProfile = createCollisionProfile();
+        if (isVisualGuardedOff()) {
+            playerSpatial.setCullHint(Spatial.CullHint.Always);
+        }
+    }
+
+    private void sanitizeModelPipeline() {
+        if (playerOptions.sanitizeSkinnedTangents()) {
+            sanitizeTangents(playerSpatial);
+        }
+        skinningRepairResult = PlayerSkinningGuard.repairMultiSkinTargets(playerSpatial);
+        skinningGuardResult = PlayerSkinningGuard.inspect(playerSpatial);
+    }
+
+    private void sanitizeTangents(Spatial spatial) {
+        if (spatial instanceof Geometry geometry) {
+            int removed = sanitizeGeometryTangents(geometry);
+            if (removed > 0) {
+                sanitizedTangentGeometryCount++;
+                sanitizedTangentBufferCount += removed;
+            }
+            return;
+        }
+        if (spatial instanceof Node node) {
+            for (Spatial child : node.getChildren()) {
+                sanitizeTangents(child);
+            }
+        }
+    }
+
+    private int sanitizeGeometryTangents(Geometry geometry) {
+        Mesh mesh = geometry.getMesh();
+        if (mesh == null) {
+            return 0;
+        }
+        int removed = 0;
+        if (clearBufferIfPresent(mesh, VertexBuffer.Type.Tangent)) {
+            removed++;
+        }
+        if (clearBufferIfTypeExists(mesh, "BindPoseTangent")) {
+            removed++;
+        }
+        if (removed > 0) {
+            sanitizedNormalMapCount += clearTangentSpaceTextureParams(geometry);
+            mesh.updateCounts();
+            mesh.updateBound();
+            geometry.updateModelBound();
+        }
+        return removed;
+    }
+
+    private int clearTangentSpaceTextureParams(Geometry geometry) {
+        Material material = geometry.getMaterial();
+        if (material == null) {
+            return 0;
+        }
+        int removed = 0;
+        removed += clearMaterialParamIfPresent(material, "NormalMap");
+        removed += clearMaterialParamIfPresent(material, "NormalTexture");
+        return removed;
+    }
+
+    private int clearMaterialParamIfPresent(Material material, String name) {
+        if (material.getParam(name) == null) {
+            return 0;
+        }
+        material.clearParam(name);
+        return 1;
+    }
+
+    private boolean clearBufferIfTypeExists(Mesh mesh, String typeName) {
+        try {
+            return clearBufferIfPresent(mesh, VertexBuffer.Type.valueOf(typeName));
+        } catch (IllegalArgumentException ignored) {
+            return false;
+        }
+    }
+
+    private boolean clearBufferIfPresent(Mesh mesh, VertexBuffer.Type type) {
+        if (mesh.getBuffer(type) == null) {
+            return false;
+        }
+        mesh.clearBuffer(type);
+        return true;
     }
 
     private void refreshModelBounds() {
@@ -32,6 +126,18 @@ public class PlayerModel extends Node {
         playerSpatial.updateGeometricState();
         updateModelBound();
         updateGeometricState();
+    }
+
+    private void alignVisualFeetToNodeOrigin() {
+        BoundingBox bounds = boundsOf(playerSpatial);
+        if (bounds == null) {
+            return;
+        }
+        float footY = bounds.getCenter().y - bounds.getYExtent();
+        if (Float.isNaN(footY) || Float.isInfinite(footY) || Math.abs(footY) < 0.001f) {
+            return;
+        }
+        playerSpatial.move(0f, -footY, 0f);
     }
 
     private PlayerCollisionProfile createCollisionProfile() {
@@ -115,19 +221,37 @@ public class PlayerModel extends Node {
     }
 
     public void setCullHint(Spatial.CullHint cullHint) {
-        playerSpatial.setCullHint(cullHint);
+        playerSpatial.setCullHint(isVisualGuardedOff() ? Spatial.CullHint.Always : cullHint);
     }
 
     public void setShadowMode(RenderQueue.ShadowMode shadowMode) {
         playerSpatial.setShadowMode(shadowMode);
     }
 
-    public void setVisualVisible(boolean visible, Spatial.CullHint visibleCullHint) {
+    public boolean setVisualVisible(boolean visible, Spatial.CullHint visibleCullHint) {
+        if (visible && isVisualGuardedOff()) {
+            playerSpatial.setCullHint(Spatial.CullHint.Always);
+            return false;
+        }
         playerSpatial.setCullHint(visible ? visibleCullHint : Spatial.CullHint.Always);
+        return visible;
+    }
+
+    public boolean isVisualGuardedOff() {
+        return skinningGuardResult.disablesVisual();
+    }
+
+    public String getVisualGuardReason() {
+        return skinningGuardResult.summary();
     }
 
     public Spatial getPlayerSpatial() { return playerSpatial; }
     public Geometry getPlayerGeometry() { return playerGeometry; }
     public Spatial getCollisionSpatial() { return collisionSpatial; }
     public PlayerCollisionProfile getCollisionProfile() { return collisionProfile; }
+    public int getSanitizedTangentGeometryCount() { return sanitizedTangentGeometryCount; }
+    public int getSanitizedTangentBufferCount() { return sanitizedTangentBufferCount; }
+    public int getSanitizedNormalMapCount() { return sanitizedNormalMapCount; }
+    public PlayerSkinningGuard.Result getSkinningGuardResult() { return skinningGuardResult; }
+    public PlayerSkinningGuard.RepairResult getSkinningRepairResult() { return skinningRepairResult; }
 }

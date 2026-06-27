@@ -11,6 +11,10 @@ local M = {
     "call.module",
     "call.provider",
     "event.publish",
+    "events.status",
+    "events.topics",
+    "events.latest",
+    "events.recent",
     "events.snapshot",
     "events.drain",
     "script.manifest",
@@ -22,7 +26,13 @@ local M = {
     "console.help",
     "console.version",
     "console.commandsList",
-    "console.complete"
+    "console.complete",
+    "task.pool.status",
+    "task.list",
+    "task.get",
+    "task.cancel",
+    "service.pool.status",
+    "service.list"
   }
 }
 
@@ -49,11 +59,32 @@ function M.provider(provider_id)
   }
 end
 
-function M.emit(topic, payload)
-  return M.call("event.publish", { topic = topic, payload = payload or {} })
+function M.emit(topic, payload, options)
+  options = options or {}
+  options.topic = topic
+  options.payload = payload or {}
+  return M.call("event.publish", options)
+end
+
+function M.emit_live(topic, payload, options)
+  options = options or {}
+  options.live = true
+  return M.emit(topic, payload, options)
 end
 
 M.events = {}
+function M.events.status()
+  return M.call("events.status", {})
+end
+function M.events.topics()
+  return M.call("events.topics", {})
+end
+function M.events.latest(source, topic)
+  return M.call("events.latest", { source = source or "all", topic = topic or "" })
+end
+function M.events.recent(limit, source)
+  return M.call("events.recent", { limit = limit or 50, source = source or "all" })
+end
 function M.events.snapshot()
   return M.call("events.snapshot", {})
 end
@@ -101,6 +132,14 @@ function M.console.commands()
 end
 function M.console.complete(prefix)
   return M.call("console.complete", { prefix = prefix or "" })
+end
+
+M.services = {}
+function M.services.status()
+  return M.call("service.pool.status", {})
+end
+function M.services.list()
+  return M.call("service.list", {})
 end
 
 return M
