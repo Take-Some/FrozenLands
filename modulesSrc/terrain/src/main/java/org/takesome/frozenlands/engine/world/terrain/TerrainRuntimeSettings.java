@@ -23,6 +23,7 @@ public final class TerrainRuntimeSettings {
     private final Map<String, Object> treeCollision = loader.map(trees, "collision");
     private final Map<String, Object> treeHealth = loader.map(trees, "health");
     private final Map<String, Object> placements = loader.map(config, "placements");
+    private final Map<String, Object> events = loader.map(config, "events");
 
     public int patchSize() { return validTerrainSize(loader.integer(grid, "patchSize", 65), 65); }
     public int quadSize() { return validTerrainSize(loader.integer(grid, "quadSize", 513), 513); }
@@ -74,6 +75,12 @@ public final class TerrainRuntimeSettings {
     public float treeBaseHealth() { return loader.floating(treeHealth, "base", 80f); }
     public float treeHealthPerScale() { return loader.floating(treeHealth, "perScale", 45f); }
 
+
+    public String tileAttachedTopic() { return loader.string(events, "tileAttachedTopic", "terrain.tile.attached"); }
+    public String tileDetachedTopic() { return loader.string(events, "tileDetachedTopic", "terrain.tile.detached"); }
+    public String tileCollisionReadyTopic() { return loader.string(events, "tileCollisionReadyTopic", "terrain.tile.collision.ready"); }
+    public String collisionReadyTopic() { return loader.string(events, "collisionReadyTopic", "terrain.collision.ready"); }
+
     public List<PlacementGroup> placementGroups() {
         List<PlacementGroup> groups = new ArrayList<>();
         Object rawGroups = placements.get("groups");
@@ -115,6 +122,12 @@ public final class TerrainRuntimeSettings {
                 "iterations", filterIterations()
         ));
         result.put("placements", placementGroups().stream().map(PlacementGroup::toMap).toList());
+        result.put("events", Map.of(
+                "tileAttachedTopic", tileAttachedTopic(),
+                "tileDetachedTopic", tileDetachedTopic(),
+                "tileCollisionReadyTopic", tileCollisionReadyTopic(),
+                "collisionReadyTopic", collisionReadyTopic()
+        ));
         return result;
     }
 

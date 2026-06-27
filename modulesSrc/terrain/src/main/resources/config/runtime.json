@@ -114,5 +114,11 @@
       "base": 80.0,
       "perScale": 45.0
     }
+  },
+  "events": {
+    "tileAttachedTopic": "terrain.tile.attached",
+    "tileDetachedTopic": "terrain.tile.detached",
+    "tileCollisionReadyTopic": "terrain.tile.collision.ready",
+    "collisionReadyTopic": "terrain.collision.ready"
   }
 }

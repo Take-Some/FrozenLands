@@ -26,6 +26,11 @@ public final class EngineEventTopics {
     public static final String ENGINE_SOUND_PLAY_FAILED = "engine.sound.play.failed";
     public static final String PARTICLE_EFFECT_REQUESTED = "engine.particles.effect.requested";
 
+    public static final String TERRAIN_TILE_ATTACHED = "terrain.tile.attached";
+    public static final String TERRAIN_TILE_DETACHED = "terrain.tile.detached";
+    public static final String TERRAIN_TILE_COLLISION_READY = "terrain.tile.collision.ready";
+    public static final String TERRAIN_COLLISION_READY = "terrain.collision.ready";
+
     public static final String PLAYER_INPUT_ENABLED_REQUESTED = "player.input.enabled.requested";
     public static final String PLAYER_INPUT_MAPPING_REGISTERED = "player.input.mapping.registered";
     public static final String PLAYER_INPUT_ACTION = "player.input.action";

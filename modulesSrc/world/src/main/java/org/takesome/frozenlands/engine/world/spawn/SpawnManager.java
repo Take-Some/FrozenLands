@@ -14,14 +14,24 @@ import java.util.Map;
 import java.util.Optional;
 
 public final class SpawnManager extends BaseAppState {
+    private static final String READY_VISUAL_HEIGHT = "visual_height";
+    private static final String READY_PHYSICS_COLLISION = "physics_collision";
+    private static final String READY_IMMEDIATE = "immediate";
+
     private final EngineContext context;
     private final TerrainManager terrainManager;
     private final float spawnX;
     private final float spawnZ;
     private final float spawnClearance;
     private final Vector3f fallbackSpawn;
+    private final String terrainReadyMode;
+    private final String terrainReadyEvent;
+    private final boolean spawnOnTerrainReadyEvent;
+    private final boolean replayTerrainReadyEvent;
     private Player player;
     private int framesWaited;
+    private boolean terrainReadyEventReceived;
+    private AutoCloseable terrainReadySubscription;
 
     public SpawnManager(EngineContext context, TerrainManager terrainManager) {
         this.context = context;
@@ -36,14 +46,20 @@ public final class SpawnManager extends BaseAppState {
         this.fallbackSpawn = new Vector3f(loader.floating(spawn, "fallbackX", 0f),
                 loader.floating(spawn, "fallbackY", 150f),
                 loader.floating(spawn, "fallbackZ", 0f));
+        this.terrainReadyMode = loader.string(spawn, "terrainReadyMode", READY_PHYSICS_COLLISION);
+        this.terrainReadyEvent = loader.string(spawn, "terrainReadyEvent", "terrain." + "collision.ready");
+        this.spawnOnTerrainReadyEvent = loader.bool(spawn, "spawnOnTerrainReadyEvent", true);
+        this.replayTerrainReadyEvent = loader.bool(spawn, "replayTerrainReadyEvent", true);
     }
 
     @Override
     protected void initialize(Application application) {
+        subscribeTerrainReadyEvent();
     }
 
     @Override
     protected void cleanup(Application application) {
+        closeTerrainReadySubscription();
     }
 
     @Override
@@ -61,10 +77,7 @@ public final class SpawnManager extends BaseAppState {
         }
         framesWaited++;
 
-        Optional<Vector3f> terrainSpawn = terrainManager.findSafeSpawnLocation(spawnX, spawnZ, spawnClearance);
-        if (terrainSpawn.isPresent()) {
-            spawn(terrainSpawn.get(), "terrain-ready");
-        }
+        attemptTerrainSpawn("terrain-ready-poll");
     }
 
     public Player spawnNow() {
@@ -89,7 +102,12 @@ public final class SpawnManager extends BaseAppState {
         Map<String, Object> status = new LinkedHashMap<>();
         status.put("spawned", isSpawned());
         status.put("framesWaited", framesWaited);
-        status.put("terrainReady", terrainManager.findSafeSpawnLocation(spawnX, spawnZ, spawnClearance).isPresent());
+        status.put("terrainReadyMode", terrainReadyMode);
+        status.put("terrainReadyEvent", terrainReadyEvent);
+        status.put("terrainReadyEventReceived", terrainReadyEventReceived);
+        status.put("terrainVisualReady", terrainManager.findSafeSpawnLocation(spawnX, spawnZ, spawnClearance).isPresent());
+        status.put("terrainCollisionReady", terrainManager.isTerrainCollisionReady());
+        status.put("terrainReady", isTerrainReadyForSpawn());
         if (player != null) {
             Vector3f position = player.getPlayerPosition();
             status.put("x", position.x);
@@ -97,6 +115,46 @@ public final class SpawnManager extends BaseAppState {
             status.put("z", position.z);
         }
         return status;
+    }
+
+
+    private void subscribeTerrainReadyEvent() {
+        if (!spawnOnTerrainReadyEvent || terrainReadyEvent == null || terrainReadyEvent.isBlank()) {
+            return;
+        }
+        terrainReadySubscription = context.getModuleRegistry().getEventBus().subscribe(terrainReadyEvent, event -> {
+            terrainReadyEventReceived = true;
+            attemptTerrainSpawn("terrain-ready-event");
+        }, replayTerrainReadyEvent);
+    }
+
+    private void closeTerrainReadySubscription() {
+        if (terrainReadySubscription == null) {
+            return;
+        }
+        try {
+            terrainReadySubscription.close();
+        } catch (Exception ignored) {
+        }
+        terrainReadySubscription = null;
+    }
+
+    private void attemptTerrainSpawn(String reason) {
+        if (player != null || !isTerrainReadyForSpawn()) {
+            return;
+        }
+        Optional<Vector3f> terrainSpawn = terrainManager.findSafeSpawnLocation(spawnX, spawnZ, spawnClearance);
+        terrainSpawn.ifPresent(location -> spawn(location, reason));
+    }
+
+    private boolean isTerrainReadyForSpawn() {
+        if (READY_IMMEDIATE.equals(terrainReadyMode)) {
+            return true;
+        }
+        if (READY_VISUAL_HEIGHT.equals(terrainReadyMode)) {
+            return terrainManager.findSafeSpawnLocation(spawnX, spawnZ, spawnClearance).isPresent();
+        }
+        return terrainManager.isTerrainCollisionReady();
     }
 
     private void spawn(Vector3f spawnLocation, String reason) {

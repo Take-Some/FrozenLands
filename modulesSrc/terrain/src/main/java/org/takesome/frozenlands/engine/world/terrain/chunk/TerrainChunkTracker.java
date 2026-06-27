@@ -5,13 +5,18 @@ import com.jme3.terrain.geomipmap.TerrainQuad;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public final class TerrainChunkTracker {
     private final Map<String, TerrainChunkSnapshot> chunksByKey = new LinkedHashMap<>();
+    private final Set<String> collisionReadyByKey = new LinkedHashSet<>();
     private int attachedCount;
     private int detachedCount;
+    private int collisionInstalledCount;
+    private int collisionRemovedCount;
 
     public synchronized void tileAttached(Vector3f cell, TerrainQuad quad) {
         attachedCount++;
@@ -23,6 +28,19 @@ public final class TerrainChunkTracker {
         detachedCount++;
         String key = key(cell);
         chunksByKey.put(key, new TerrainChunkSnapshot(key, cell, quad.getName(), false, Instant.now()));
+        collisionRemovedCount++;
+        collisionReadyByKey.clear();
+    }
+
+    public synchronized void tileCollisionInstalled(Vector3f cell, TerrainQuad quad) {
+        collisionInstalledCount++;
+        String key = key(cell);
+        chunksByKey.put(key, new TerrainChunkSnapshot(key, cell, quad.getName(), true, Instant.now()));
+        collisionReadyByKey.add(key);
+    }
+
+    public synchronized boolean hasCollisionReadyChunks() {
+        return !collisionReadyByKey.isEmpty();
     }
 
     public synchronized int getLoadedChunkCount() {
@@ -45,6 +63,10 @@ public final class TerrainChunkTracker {
         status.put("loadedChunks", getLoadedChunkCount());
         status.put("attachedEvents", attachedCount);
         status.put("detachedEvents", detachedCount);
+        status.put("collisionInstalledEvents", collisionInstalledCount);
+        status.put("collisionRemovedEvents", collisionRemovedCount);
+        status.put("collisionReady", hasCollisionReadyChunks());
+        status.put("collisionReadyChunks", collisionReadyByKey.size());
         return status;
     }
 

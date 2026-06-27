@@ -17,6 +17,7 @@ import org.takesome.frozenlands.engine.world.terrain.chunk.TerrainChunkTracker;
 import org.takesome.frozenlands.engine.world.terrain.gen.tree.TreeGen;
 
 import java.util.List;
+import java.util.Map;
 
 public class TerrainGenHelper {
     private final EngineContext kernelInterface;
@@ -55,12 +56,14 @@ public class TerrainGenHelper {
             @Override
             public void tileAttached(Vector3f cell, TerrainQuad quad) {
                 chunkTracker.tileAttached(cell, quad);
-                installTileRuntime(quad, treeGen, "attached");
+                publishTerrainEvent(settings.tileAttachedTopic(), cell, quad, "attached");
+                installTileRuntime(cell, quad, treeGen, "attached");
             }
 
             @Override
             public void tileDetached(Vector3f cell, TerrainQuad quad) {
                 chunkTracker.tileDetached(cell, quad);
+                publishTerrainEvent(settings.tileDetachedTopic(), cell, quad, "detached");
                 uninstallTileRuntime(quad);
             }
         });
@@ -70,18 +73,18 @@ public class TerrainGenHelper {
     private void installExistingTileRuntime(TreeGen treeGen) {
         for (Spatial child : terrain.getChildren()) {
             if (child instanceof TerrainQuad quad) {
-                installTileRuntime(quad, treeGen, "existing");
+                installTileRuntime(child.getWorldTranslation(), quad, treeGen, "existing");
             }
         }
     }
 
-    private void installTileRuntime(TerrainQuad quad, TreeGen treeGen, String reason) {
-        replaceTerrainCollision(quad);
+    private void installTileRuntime(Vector3f cell, TerrainQuad quad, TreeGen treeGen, String reason) {
+        replaceTerrainCollision(cell, quad, reason);
         treeGen.positionTrees(quad);
         kernelInterface.getLogger().debug("Terrain tile runtime installed reason={} quad={}", reason, quad.getName());
     }
 
-    private void replaceTerrainCollision(TerrainQuad quad) {
+    private void replaceTerrainCollision(Vector3f cell, TerrainQuad quad, String reason) {
         RigidBodyControl existingControl = quad.getControl(RigidBodyControl.class);
         if (existingControl != null) {
             kernelInterface.getBulletAppState().getPhysicsSpace().remove(existingControl);
@@ -92,6 +95,25 @@ public class TerrainGenHelper {
                         quad.getHeightMap(), terrain.getLocalScale()),
                 0));
         kernelInterface.getBulletAppState().getPhysicsSpace().add(quad);
+        chunkTracker.tileCollisionInstalled(cell, quad);
+        publishTerrainEvent(settings.tileCollisionReadyTopic(), cell, quad, reason);
+        publishTerrainEvent(settings.collisionReadyTopic(), cell, quad, reason);
+    }
+
+    private void publishTerrainEvent(String topic, Vector3f cell, TerrainQuad quad, String reason) {
+        if (topic == null || topic.isBlank()) {
+            return;
+        }
+        Vector3f safeCell = cell == null ? quad.getWorldTranslation() : cell;
+        kernelInterface.getModuleRegistry().publishLiveEvent(topic, Map.of(
+                "ready", true,
+                "reason", reason,
+                "quad", quad.getName(),
+                "cellX", safeCell.x,
+                "cellY", safeCell.y,
+                "cellZ", safeCell.z,
+                "loadedChunks", chunkTracker.getLoadedChunkCount()
+        ));
     }
 
     private void uninstallTileRuntime(TerrainQuad quad) {

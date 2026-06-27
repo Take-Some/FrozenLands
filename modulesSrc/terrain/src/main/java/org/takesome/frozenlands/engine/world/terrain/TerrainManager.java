@@ -64,6 +64,10 @@ public class TerrainManager {
         return Optional.of(height);
     }
 
+    public boolean isTerrainCollisionReady() {
+        return chunkTracker.hasCollisionReadyChunks();
+    }
+
     public Optional<Float> getWalkableHeightAt(float x, float z) {
         Optional<Float> visualHeight = getHeightAt(x, z);
         if (visualHeight.isPresent()) {
@@ -174,6 +178,7 @@ public class TerrainManager {
         status.put("terrain", terrain != null);
         status.put("mountains", mountains != null);
         status.put("chunks", chunkTracker.status());
+        status.put("terrainCollisionReady", isTerrainCollisionReady());
         status.put("terrainService", terrainService.status());
         status.put("settings", settingsSnapshot());
         return status;
