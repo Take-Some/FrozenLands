@@ -2,6 +2,7 @@ package org.takesome.frozenlands.engine.weather;
 
 public final class WeatherEvents {
     public static final String WEATHER_STATE_CHANGED = "weather.state.changed";
+    public static final String WEATHER_ENVIRONMENT_CHANGED = "weather.environment.changed";
 
     public static final String SNOW_STARTED = "weather.snow.started";
     public static final String SNOW_STOPPED = "weather.snow.stopped";

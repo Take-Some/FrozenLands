@@ -8,7 +8,6 @@ import org.takesome.frozenlands.engine.config.Constants;
 import org.takesome.frozenlands.engine.runtime.RuntimeMaps;
 import org.takesome.frozenlands.engine.terrain.TerrainService;
 import org.takesome.frozenlands.engine.terrain.module.TerrainServiceFactory;
-import org.takesome.frozenlands.engine.world.terrain.TerrainRuntimeSettings.PlacementGroup;
 import org.takesome.frozenlands.engine.world.terrain.chunk.TerrainChunkTracker;
 import org.takesome.frozenlands.engine.world.terrain.gen.GenAdaptor;
 
@@ -97,12 +96,12 @@ public class TerrainManager {
     }
 
     public List<Map<String, Object>> placementGroups() {
-        return settings.placementGroups().stream().map(PlacementGroup::toMap).toList();
+        return settings.placementGroups().stream().map(TerrainPlacementGroup::toMap).toList();
     }
 
     public Map<String, Object> validatePlacement(Map<String, Object> args) {
-        List<PlacementGroup> groups = settings.placementGroups();
-        PlacementGroup group = selectGroup(groups, RuntimeMaps.string(args, "group", RuntimeMaps.string(args, "groupId", "")));
+        List<TerrainPlacementGroup> groups = settings.placementGroups();
+        TerrainPlacementGroup group = selectGroup(groups, RuntimeMaps.string(args, "group", RuntimeMaps.string(args, "groupId", "")));
         float x = RuntimeMaps.floating(args, "x", 0f);
         float z = RuntimeMaps.floating(args, "z", 0f);
         float radius = RuntimeMaps.floating(args, "radius", Math.max(0.5f, group.footprintPadding() + group.edgePadding()));
@@ -162,9 +161,9 @@ public class TerrainManager {
         return result;
     }
 
-    private PlacementGroup selectGroup(List<PlacementGroup> groups, String groupId) {
+    private TerrainPlacementGroup selectGroup(List<TerrainPlacementGroup> groups, String groupId) {
         if (groupId != null && !groupId.isBlank()) {
-            for (PlacementGroup group : groups) {
+            for (TerrainPlacementGroup group : groups) {
                 if (group.id().equals(groupId)) {
                     return group;
                 }

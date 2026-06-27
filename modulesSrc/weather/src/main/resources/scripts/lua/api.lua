@@ -5,11 +5,13 @@ local M = {
     "snow_start",
     "snow_stop",
     "snow_light",
+    "snow_default",
     "snow_blizzard",
     "wind"
   },
   events = {
     weather_state_changed = "weather.state.changed",
+    weather_environment_changed = "weather.environment.changed",
     snow_started = "weather.snow.started",
     snow_stopped = "weather.snow.stopped",
     snow_density_changed = "weather.snow.density.changed",
@@ -32,6 +34,10 @@ end
 
 function M.light_snow()
   return M.call("snow_light", {})
+end
+
+function M.default_snow()
+  return M.call("snow_default", {})
 end
 
 function M.blizzard()

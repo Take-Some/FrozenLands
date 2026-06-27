@@ -21,6 +21,7 @@ public final class WeatherModule implements EngineModule {
         commands.put("snow_start", ModuleCommand.of("snow_start", "Start sky snow precipitation.", this::snowStart));
         commands.put("snow_stop", ModuleCommand.of("snow_stop", "Stop sky snow precipitation.", this::snowStop));
         commands.put("snow_light", ModuleCommand.of("snow_light", "Switch to light sky snow.", args -> snowMode("light", true)));
+        commands.put("snow_default", ModuleCommand.of("snow_default", "Switch to default sky snow.", args -> snowMode("default", true)));
         commands.put("snow_blizzard", ModuleCommand.of("snow_blizzard", "Switch to dense Frostpunk-style blizzard snow.", args -> snowMode("blizzard", true)));
         commands.put("wind", ModuleCommand.of("wind", "Set weather wind vector: {x,y,z}.", this::wind));
     }
@@ -75,7 +76,7 @@ public final class WeatherModule implements EngineModule {
     private Map<String, Object> snowStart(Map<String, Object> args) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("reason", "module-command");
-        payload.put("mode", string(args, "mode", ""));
+        payload.put("mode", WeatherPayloads.string(args, "mode", ""));
         context.getModuleRegistry().publishEvent(WeatherEvents.SNOW_STARTED, payload);
         return status(args);
     }
@@ -97,20 +98,11 @@ public final class WeatherModule implements EngineModule {
     private Map<String, Object> wind(Map<String, Object> args) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("reason", "module-command");
-        payload.put("x", number(args, "x", 0f));
-        payload.put("y", number(args, "y", 0f));
-        payload.put("z", number(args, "z", 0f));
+        payload.put("x", WeatherPayloads.number(args, "x", 0f));
+        payload.put("y", WeatherPayloads.number(args, "y", 0f));
+        payload.put("z", WeatherPayloads.number(args, "z", 0f));
         context.getModuleRegistry().publishEvent(WeatherEvents.WIND_CHANGED, payload);
         return status(args);
     }
 
-    private static String string(Map<String, Object> args, String key, String fallback) {
-        Object value = args == null ? null : args.get(key);
-        return value == null ? fallback : String.valueOf(value);
-    }
-
-    private static float number(Map<String, Object> args, String key, float fallback) {
-        Object value = args == null ? null : args.get(key);
-        return value instanceof Number number ? number.floatValue() : value == null ? fallback : Float.parseFloat(String.valueOf(value));
-    }
 }

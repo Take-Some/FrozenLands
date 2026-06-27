@@ -8,8 +8,7 @@
     "shell": "app/frozenlands.html",
     "hud": "app/hud.html",
     "pause": "app/pause.html",
-    "mainMenu": "app/main-menu.html",
-    "prelaunch": "app/prelaunch.html"
+    "mainMenu": "app/main-menu.html"
   },
   "styles": [
     "system/reset.css",
@@ -22,8 +21,7 @@
     "components/menu.css",
     "screens/game-hud.css",
     "screens/pause-menu.css",
-    "screens/main-menu.css",
-    "screens/prelaunch.css"
+    "screens/main-menu.css"
   ],
   "scripts": [
     "scripts/frozenlands.lua"

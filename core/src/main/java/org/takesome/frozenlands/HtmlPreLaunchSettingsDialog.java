@@ -11,11 +11,12 @@ import java.awt.Dimension;
 import java.awt.DisplayMode;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
+import java.awt.Point;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -26,7 +27,7 @@ import java.util.prefs.BackingStoreException;
 
 final class HtmlPreLaunchSettingsDialog {
     private static final String PREFERENCES_KEY = "FrozenLands";
-    private static final Path UI_ROOT = Path.of("assets", "ui");
+    private static final String PRELAUNCH_RESOURCE_ROOT = "org/takesome/frozenlands/engine/ui/prelaunch";
     private static final int[] SAMPLE_VALUES = {0, 2, 4, 8, 16};
     private static final String[] SAMPLE_LABELS = {"Off", "2x MSAA", "4x MSAA", "8x MSAA", "16x MSAA"};
 
@@ -47,6 +48,7 @@ final class HtmlPreLaunchSettingsDialog {
 
         private HtmlDomSwingPanel panel;
         private JDialog dialog;
+        private Point windowDragOffset;
         private int resolutionIndex;
         private int sampleIndex;
         private boolean fullscreen;
@@ -64,15 +66,18 @@ final class HtmlPreLaunchSettingsDialog {
 
         private AppSettings show() {
             try {
-                panel = new HtmlDomSwingPanel(readHtml(), readCss());
+                String sourcePath = PRELAUNCH_RESOURCE_ROOT + "/prelaunch.html";
+                panel = new HtmlDomSwingPanel(readHtml(), "", sourcePath, PRELAUNCH_RESOURCE_ROOT);
                 panel.setPreferredSize(new Dimension(960, 640));
                 panel.setMinimumSize(new Dimension(860, 560));
                 panel.setSize(960, 640);
                 installActions();
+                installWindowDrag();
                 refresh();
                 panel.ensureLayout();
 
                 dialog = new JDialog((java.awt.Frame) null, "FrozenLands Launcher", true);
+                dialog.setUndecorated(true);
                 dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
                 dialog.setContentPane(panel);
                 installKeyboardShortcuts(dialog);
@@ -107,6 +112,44 @@ final class HtmlPreLaunchSettingsDialog {
             on("prelaunch-reset", this::resetDefaults);
             on("prelaunch-cancel", this::cancel);
             on("prelaunch-launch", this::confirm);
+            on("window-close", this::cancel);
+        }
+
+        private void installWindowDrag() {
+            MouseAdapter adapter = new MouseAdapter() {
+                @Override
+                public void mousePressed(MouseEvent event) {
+                    if (!SwingUtilities.isLeftMouseButton(event) || !insideDraggableChrome(event)) {
+                        windowDragOffset = null;
+                        return;
+                    }
+                    windowDragOffset = event.getPoint();
+                }
+
+                @Override
+                public void mouseDragged(MouseEvent event) {
+                    if (dialog == null || windowDragOffset == null) {
+                        return;
+                    }
+                    dialog.setLocation(event.getXOnScreen() - windowDragOffset.x, event.getYOnScreen() - windowDragOffset.y);
+                }
+
+                @Override
+                public void mouseReleased(MouseEvent event) {
+                    windowDragOffset = null;
+                }
+            };
+            panel.addMouseListener(adapter);
+            panel.addMouseMotionListener(adapter);
+        }
+
+        private boolean insideDraggableChrome(MouseEvent event) {
+            if (event == null) {
+                return false;
+            }
+            int x = event.getX();
+            int y = event.getY();
+            return y >= 10 && y <= 70 && x >= 14 && x < 882;
         }
 
         private void on(String id, Runnable action) {
@@ -306,19 +349,13 @@ final class HtmlPreLaunchSettingsDialog {
         }
 
         private String readHtml() throws IOException {
-            return Files.readString(UI_ROOT.resolve("app/prelaunch.html"), StandardCharsets.UTF_8);
-        }
-
-        private String readCss() throws IOException {
-            String[] styles = {
-                    "screens/prelaunch.css"
-            };
-            StringBuilder css = new StringBuilder(8192);
-            for (String style : styles) {
-                css.append("\n/* ").append(style).append(" */\n");
-                css.append(Files.readString(UI_ROOT.resolve(style), StandardCharsets.UTF_8));
+            String resource = PRELAUNCH_RESOURCE_ROOT + "/prelaunch.html";
+            try (var stream = HtmlPreLaunchSettingsDialog.class.getClassLoader().getResourceAsStream(resource)) {
+                if (stream == null) {
+                    throw new IOException("Engine-owned prelaunch resource not found: " + resource);
+                }
+                return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
             }
-            return css.toString();
         }
     }
 
