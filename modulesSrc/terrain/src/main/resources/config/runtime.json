@@ -120,5 +120,9 @@
     "tileDetachedTopic": "terrain.tile.detached",
     "tileCollisionReadyTopic": "terrain.tile.collision.ready",
     "collisionReadyTopic": "terrain.collision.ready"
+  },
+  "collision": {
+    "mode": "mesh",
+    "logReady": true
   }
 }

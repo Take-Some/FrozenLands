@@ -1,6 +1,8 @@
 package org.takesome.frozenlands.engine.world.terrain.gen.terrain;
 
+import com.jme3.bullet.collision.shapes.CollisionShape;
 import com.jme3.bullet.collision.shapes.HeightfieldCollisionShape;
+import com.jme3.bullet.util.CollisionShapeFactory;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Spatial;
@@ -90,14 +92,32 @@ public class TerrainGenHelper {
             kernelInterface.getBulletAppState().getPhysicsSpace().remove(existingControl);
             quad.removeControl(RigidBodyControl.class);
         }
-        quad.addControl(new RigidBodyControl(
-                new HeightfieldCollisionShape(
-                        quad.getHeightMap(), terrain.getLocalScale()),
-                0));
-        kernelInterface.getBulletAppState().getPhysicsSpace().add(quad);
+        CollisionShape shape = createTerrainCollisionShape(quad);
+        RigidBodyControl control = new RigidBodyControl(shape, 0);
+        quad.addControl(control);
+        kernelInterface.getBulletAppState().getPhysicsSpace().add(control);
         chunkTracker.tileCollisionInstalled(cell, quad);
+        if (settings.terrainCollisionLogReady()) {
+            kernelInterface.getLogger().info(
+                    "Terrain collision ready mode={} reason={} quad={} cell={} world={} scale={} samples={}",
+                    settings.terrainCollisionMode(),
+                    reason,
+                    quad.getName(),
+                    cell,
+                    quad.getWorldTranslation(),
+                    terrain.getLocalScale(),
+                    quad.getHeightMap() == null ? 0 : quad.getHeightMap().length
+            );
+        }
         publishTerrainEvent(settings.tileCollisionReadyTopic(), cell, quad, reason);
         publishTerrainEvent(settings.collisionReadyTopic(), cell, quad, reason);
+    }
+
+    private CollisionShape createTerrainCollisionShape(TerrainQuad quad) {
+        if ("mesh".equals(settings.terrainCollisionMode())) {
+            return CollisionShapeFactory.createMeshShape(quad);
+        }
+        return new HeightfieldCollisionShape(quad.getHeightMap(), terrain.getLocalScale());
     }
 
     private void publishTerrainEvent(String topic, Vector3f cell, TerrainQuad quad, String reason) {

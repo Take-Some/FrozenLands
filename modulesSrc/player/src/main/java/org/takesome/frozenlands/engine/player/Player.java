@@ -94,9 +94,14 @@ public class Player extends Node {
 
     public void addPlayer(Camera cam, Vector3f spawnPoint) {
         attachToSceneGraph();
-        initializeCollisionFromModel(spawnPoint);
+        BetterCharacterControl character = initializeCollisionFromModel(spawnPoint);
         initializeRuntimeControls(cam);
+        setLocalTranslation(spawnPoint);
+        updateGeometricState();
         pspace.addAll(this);
+        character.warp(spawnPoint);
+        updateGeometricState();
+        logSpawnDiagnostics(cam, spawnPoint, character);
         onSpawn();
     }
 
@@ -106,13 +111,12 @@ public class Player extends Node {
         }
     }
 
-    private void initializeCollisionFromModel(Vector3f spawnPoint) {
+    private BetterCharacterControl initializeCollisionFromModel(Vector3f spawnPoint) {
         PlayerCollisionProfile collision = playerModel.getCollisionProfile();
         BetterCharacterControl character = new BetterCharacterControl(collision.radius(), collision.height(), collision.mass());
         character.setJumpForce(playerOptions.getJumpForce());
         playerOptions.setCharacterControl(character);
         addControl(character);
-        character.warp(spawnPoint);
         getLogger().info(
                 "Player collision from {} radius={} height={} mass={} boundsCenter={} boundsExtent={}",
                 collision.source(),
@@ -122,6 +126,7 @@ public class Player extends Node {
                 collision.boundsCenter(),
                 collision.boundsExtent()
         );
+        return character;
     }
 
     private void initializeRuntimeControls(Camera cam) {
@@ -142,23 +147,24 @@ public class Player extends Node {
         playerMenuState = new PlayerMenuState(this);
         getStateManager().attach(playerMenuState);
         addControl(new FPSViewControl(FPSViewControl.Mode.WORLD_SCENE));
-        logSpawnDiagnostics(cam);
     }
 
     private void onSpawn() {
         // Sound is routed by SoundProvider from PLAYER_SPAWNED.
     }
 
-    private void logSpawnDiagnostics(Camera cam) {
+    private void logSpawnDiagnostics(Camera cam, Vector3f requestedSpawn, BetterCharacterControl character) {
         updateGeometricState();
         playerModel.updateGeometricState();
         playerModel.getPlayerSpatial().updateGeometricState();
         getLogger().info(
-                "Player spawn diagnostics playerWorld={} modelWorld={} visualWorld={} cameraLocation={} viewMode={} playerCull={} modelCull={} visualCull={}",
+                "Player spawn diagnostics requestedSpawn={} playerWorld={} modelWorld={} visualWorld={} cameraLocation={} characterControlPresent={} viewMode={} playerCull={} modelCull={} visualCull={}",
+                requestedSpawn,
                 getWorldTranslation(),
                 playerModel.getWorldTranslation(),
                 playerModel.getPlayerSpatial().getWorldTranslation(),
                 cam.getLocation(),
+                character != null,
                 cameraRig == null ? "<none>" : cameraRig.viewMode(),
                 getCullHint(),
                 playerModel.getCullHint(),

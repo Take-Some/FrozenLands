@@ -24,6 +24,7 @@ public final class TerrainRuntimeSettings {
     private final Map<String, Object> treeHealth = loader.map(trees, "health");
     private final Map<String, Object> placements = loader.map(config, "placements");
     private final Map<String, Object> events = loader.map(config, "events");
+    private final Map<String, Object> collision = loader.map(config, "collision");
 
     public int patchSize() { return validTerrainSize(loader.integer(grid, "patchSize", 65), 65); }
     public int quadSize() { return validTerrainSize(loader.integer(grid, "quadSize", 513), 513); }
@@ -80,6 +81,8 @@ public final class TerrainRuntimeSettings {
     public String tileDetachedTopic() { return loader.string(events, "tileDetachedTopic", "terrain.tile.detached"); }
     public String tileCollisionReadyTopic() { return loader.string(events, "tileCollisionReadyTopic", "terrain.tile.collision.ready"); }
     public String collisionReadyTopic() { return loader.string(events, "collisionReadyTopic", "terrain.collision.ready"); }
+    public String terrainCollisionMode() { return loader.string(collision, "mode", "heightfield").trim().toLowerCase(); }
+    public boolean terrainCollisionLogReady() { return loader.bool(collision, "logReady", false); }
 
     public List<PlacementGroup> placementGroups() {
         List<PlacementGroup> groups = new ArrayList<>();
