@@ -7,11 +7,9 @@ import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
-import java.awt.AWTEvent;
 import java.awt.EventQueue;
 import java.awt.SecondaryLoop;
 import java.awt.Toolkit;
-import java.awt.Window;
 import java.awt.Dimension;
 import java.awt.DisplayMode;
 import java.awt.GraphicsDevice;
@@ -21,7 +19,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.event.AWTEventListener;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -41,9 +38,6 @@ final class HtmlPreLaunchSettingsDialog {
     private static final String PRELAUNCH_MODALITY_PROPERTY = "frozenlands.prelaunch.modality";
     private static final String PRELAUNCH_MODAL_PROPERTY = "frozenlands.prelaunch.modal";
     private static final String PRELAUNCH_DEVTOOLS_INPUT_PROPERTY = "frozenlands.prelaunch.devToolsInput";
-    private static final String PRELAUNCH_DEVTOOLS_LAYER_PROPERTY = "frozenlands.prelaunch.devToolsLayer";
-    private static final String HTMLDOM_DEVTOOLS_ALWAYS_ON_TOP_PROPERTY = "htmldom.devtools.alwaysOnTop";
-    private static final String HTMLDOM_DEVTOOLS_PUSH_INSPECTED_BEHIND_PROPERTY = "htmldom.devtools.pushInspectedBehind";
     private static final int[] SAMPLE_VALUES = {0, 2, 4, 8, 16};
     private static final String[] SAMPLE_LABELS = {"Off", "2x MSAA", "4x MSAA", "8x MSAA", "16x MSAA"};
 
@@ -68,7 +62,6 @@ final class HtmlPreLaunchSettingsDialog {
         private HtmlDomSwingPanel panel;
         private JDialog dialog;
         private SecondaryLoop completionLoop;
-        private AWTEventListener devToolsLayerListener;
         private Point windowDragOffset;
         private int resolutionIndex;
         private int sampleIndex;
@@ -116,7 +109,6 @@ final class HtmlPreLaunchSettingsDialog {
                 });
                 dialog.setContentPane(panel);
                 installKeyboardShortcuts(dialog);
-                installDevToolsLayerPolicy();
                 dialog.pack();
                 dialog.setMinimumSize(new Dimension(860, 560));
                 dialog.setLocationRelativeTo(null);
@@ -131,56 +123,6 @@ final class HtmlPreLaunchSettingsDialog {
         private void installKeyboardShortcuts(JDialog dialog) {
             dialog.getRootPane().registerKeyboardAction(event -> cancel(), KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
             dialog.getRootPane().registerKeyboardAction(event -> confirm(), KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
-            if (windowOptions.devToolsLayerEnabled()) {
-                dialog.getRootPane().registerKeyboardAction(event -> openDevToolsFromLauncher(), KeyStroke.getKeyStroke(KeyEvent.VK_F12, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
-            }
-        }
-
-        private void openDevToolsFromLauncher() {
-            panel.openDevTools();
-            if (windowOptions.pushPrelaunchBehindDevTools() && dialog != null) {
-                SwingUtilities.invokeLater(dialog::toBack);
-            }
-        }
-
-        private void installDevToolsLayerPolicy() {
-            if (!windowOptions.devToolsLayerEnabled()) {
-                return;
-            }
-            devToolsLayerListener = event -> {
-                if (event instanceof WindowEvent windowEvent && isDevToolsWindow(windowEvent.getWindow())) {
-                    SwingUtilities.invokeLater(() -> raiseDevToolsWindow(windowEvent.getWindow()));
-                }
-            };
-            Toolkit.getDefaultToolkit().addAWTEventListener(devToolsLayerListener, AWTEvent.WINDOW_EVENT_MASK);
-        }
-
-        private boolean isDevToolsWindow(Window window) {
-            if (window == null) {
-                return false;
-            }
-            String name = window.getName();
-            String title = window instanceof java.awt.Frame frame ? frame.getTitle() : "";
-            return containsDevToolsMarker(name) || containsDevToolsMarker(title);
-        }
-
-        private boolean containsDevToolsMarker(String value) {
-            return value != null && value.toLowerCase().contains("htmldom devtools");
-        }
-
-        private void raiseDevToolsWindow(Window window) {
-            if (window == null || !window.isDisplayable()) {
-                return;
-            }
-            if (dialog != null) {
-                dialog.setAlwaysOnTop(false);
-                if (windowOptions.pushPrelaunchBehindDevTools()) {
-                    dialog.toBack();
-                }
-            }
-            window.setAlwaysOnTop(windowOptions.devToolsAlwaysOnTop());
-            window.toFront();
-            window.requestFocus();
         }
 
         private void installActions() {
@@ -399,10 +341,6 @@ final class HtmlPreLaunchSettingsDialog {
                 return;
             }
             result.set(settings);
-            if (devToolsLayerListener != null) {
-                Toolkit.getDefaultToolkit().removeAWTEventListener(devToolsLayerListener);
-                devToolsLayerListener = null;
-            }
             if (dialog != null && dialog.isDisplayable()) {
                 dialog.dispose();
             }
@@ -476,21 +414,12 @@ final class HtmlPreLaunchSettingsDialog {
         }
     }
 
-    private record LaunchWindowOptions(boolean modal, boolean devToolsAlwaysOnTop, boolean pushPrelaunchBehindDevTools) {
-        private boolean devToolsLayerEnabled() {
-            return devToolsAlwaysOnTop || pushPrelaunchBehindDevTools;
-        }
-
+    private record LaunchWindowOptions(boolean modal) {
         private static LaunchWindowOptions fromSystemProperties() {
             String mode = System.getProperty(PRELAUNCH_MODALITY_PROPERTY, "").trim().toLowerCase();
             String explicitModal = System.getProperty(PRELAUNCH_MODAL_PROPERTY, "").trim();
             boolean devToolsInput = Boolean.parseBoolean(System.getProperty(PRELAUNCH_DEVTOOLS_INPUT_PROPERTY, "false"));
-            boolean devToolsMode = devToolsInput || isDevToolsMode(mode);
-            boolean modal = resolveModal(mode, explicitModal, devToolsInput);
-            boolean devToolsAlwaysOnTop = resolveDevToolsAlwaysOnTop(devToolsMode);
-            boolean pushPrelaunchBehindDevTools = resolvePushPrelaunchBehindDevTools(devToolsMode);
-            applyHtmlDomDevToolsDefaults(devToolsAlwaysOnTop, pushPrelaunchBehindDevTools);
-            return new LaunchWindowOptions(modal, devToolsAlwaysOnTop, pushPrelaunchBehindDevTools);
+            return new LaunchWindowOptions(resolveModal(mode, explicitModal, devToolsInput));
         }
 
         private static boolean resolveModal(String mode, String explicitModal, boolean devToolsInput) {
@@ -505,38 +434,6 @@ final class HtmlPreLaunchSettingsDialog {
                 return Boolean.parseBoolean(explicitModal);
             }
             return !devToolsInput;
-        }
-
-        private static boolean resolveDevToolsAlwaysOnTop(boolean devToolsMode) {
-            String layer = System.getProperty(PRELAUNCH_DEVTOOLS_LAYER_PROPERTY, "").trim().toLowerCase();
-            if (!layer.isBlank()) {
-                return switch (layer) {
-                    case "above", "top", "on-top", "always-on-top", "always_on_top" -> true;
-                    case "normal", "off", "none" -> false;
-                    default -> devToolsMode;
-                };
-            }
-            return Boolean.parseBoolean(System.getProperty(HTMLDOM_DEVTOOLS_ALWAYS_ON_TOP_PROPERTY, Boolean.toString(devToolsMode)));
-        }
-
-        private static boolean resolvePushPrelaunchBehindDevTools(boolean devToolsMode) {
-            String configured = System.getProperty(HTMLDOM_DEVTOOLS_PUSH_INSPECTED_BEHIND_PROPERTY, "").trim();
-            return configured.isBlank() ? devToolsMode : Boolean.parseBoolean(configured);
-        }
-
-        private static boolean isDevToolsMode(String mode) {
-            return "devtools".equals(mode) || "dev-tools".equals(mode);
-        }
-
-        private static void applyHtmlDomDevToolsDefaults(boolean alwaysOnTop, boolean pushInspectedBehind) {
-            setDefaultSystemProperty(HTMLDOM_DEVTOOLS_ALWAYS_ON_TOP_PROPERTY, Boolean.toString(alwaysOnTop));
-            setDefaultSystemProperty(HTMLDOM_DEVTOOLS_PUSH_INSPECTED_BEHIND_PROPERTY, Boolean.toString(pushInspectedBehind));
-        }
-
-        private static void setDefaultSystemProperty(String name, String value) {
-            if (System.getProperty(name) == null) {
-                System.setProperty(name, value);
-            }
         }
     }
 

@@ -116,7 +116,6 @@ tasks.named('run', JavaExec) {
             'frozenlands.prelaunch.modality',
             'frozenlands.prelaunch.modal',
             'frozenlands.prelaunch.devToolsInput',
-            'frozenlands.prelaunch.devToolsLayer',
             'htmldom.devtools.alwaysOnTop',
             'htmldom.devtools.pushInspectedBehind'
     ].each { propertyName ->
