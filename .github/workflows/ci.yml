@@ -1,66 +1,117 @@
+---
 name: CI
 
-"on":
+on:
   push:
     branches:
-      - main
+      - '**'
   pull_request:
     branches:
-      - main
+      - '**'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: frozenlands-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-jobs:
-  gradle:
-    name: Gradle / ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+env:
+  SKY_SIMULATION_VERSION: '1.4.2'
 
+jobs:
+  validate:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest
-          - windows-latest
+        include:
+          - name: Linux Java 17
+            os: ubuntu-24.04
+            shell: bash
+            gradle: ./gradlew
+            sky-gradle: ./gradlew
+          - name: Windows Java 17
+            os: windows-2025
+            shell: cmd
+            gradle: gradlew.bat
+            sky-gradle: gradlew.bat
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
+      - name: Checkout FrozenLands
+        uses: actions/checkout@v4
+        with:
+          path: FrozenLands-main
 
-      - name: Set up Java 17
-        uses: actions/setup-java@v5
+      - name: Checkout SkySimulation dependency
+        uses: actions/checkout@v4
+        with:
+          repository: Take-Some/SkySimulation
+          ref: master
+          path: SkySimulation
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
+      - name: Validate Gradle wrappers
+        uses: gradle/actions/wrapper-validation@v4
+
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@v4
 
-      - name: Make Gradle wrapper executable
-        run: chmod +x ./gradlew
+      - name: Make wrappers executable
+        if: runner.os != 'Windows'
         shell: bash
+        run: |
+          chmod +x FrozenLands-main/gradlew
+          chmod +x SkySimulation/gradlew
 
-      - name: Validate Gradle wrapper
-        run: ./gradlew --version --console=plain
-        shell: bash
+      - name: Build SkySimulation into Maven Local
+        working-directory: SkySimulation
+        shell: ${{ matrix.shell }}
+        run: ${{ matrix.sky-gradle }} packageLocal --no-daemon --console=plain --stacktrace -PskySimulationVersion=${{ env.SKY_SIMULATION_VERSION }}
+
+      - name: Resolve desktop runtime classpath
+        working-directory: FrozenLands-main
+        shell: ${{ matrix.shell }}
+        run: ${{ matrix.gradle }} :desktop:dependencies --configuration runtimeClasspath --no-daemon --console=plain --stacktrace
 
       - name: Validate project indexes
-        run: ./gradlew validateProjectIndex --warning-mode all --console=plain --stacktrace
-        shell: bash
+        working-directory: FrozenLands-main
+        shell: ${{ matrix.shell }}
+        run: ${{ matrix.gradle }} validateProjectIndex --no-daemon --warning-mode all --console=plain --stacktrace
 
       - name: Validate assets
-        run: ./gradlew :assets:check --warning-mode all --console=plain --stacktrace
-        shell: bash
+        working-directory: FrozenLands-main
+        shell: ${{ matrix.shell }}
+        run: ${{ matrix.gradle }} :assets:check --no-daemon --warning-mode all --console=plain --stacktrace
 
       - name: Compile desktop graph
-        run: ./gradlew :desktop:classes --warning-mode all --console=plain --stacktrace
-        shell: bash
+        working-directory: FrozenLands-main
+        shell: ${{ matrix.shell }}
+        run: ${{ matrix.gradle }} :desktop:classes --no-daemon --warning-mode all --console=plain --stacktrace
 
       - name: Build install distribution
-        run: ./gradlew :desktop:installDist --warning-mode all --console=plain --stacktrace
-        shell: bash
+        working-directory: FrozenLands-main
+        shell: ${{ matrix.shell }}
+        run: ${{ matrix.gradle }} :desktop:installDist --no-daemon --warning-mode all --console=plain --stacktrace
+
+      - name: Upload Gradle reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-reports-${{ matrix.name }}
+          if-no-files-found: ignore
+          path: |
+            FrozenLands-main/build/reports/**
+            FrozenLands-main/**/build/reports/**
+            FrozenLands-main/**/build/test-results/**
+            SkySimulation/build/reports/**
+            SkySimulation/**/build/reports/**
+            SkySimulation/**/build/test-results/**
