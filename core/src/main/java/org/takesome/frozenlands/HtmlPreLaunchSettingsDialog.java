@@ -1,6 +1,7 @@
 package org.takesome.frozenlands;
 
 import com.jme3.system.AppSettings;
+import dev.takesome.htmldom.desktop.HtmlDomConfig;
 import dev.takesome.htmldom.desktop.HtmlDomSwingPanel;
 
 import javax.swing.JComponent;
@@ -38,6 +39,10 @@ final class HtmlPreLaunchSettingsDialog {
     private static final String PRELAUNCH_MODALITY_PROPERTY = "frozenlands.prelaunch.modality";
     private static final String PRELAUNCH_MODAL_PROPERTY = "frozenlands.prelaunch.modal";
     private static final String PRELAUNCH_DEVTOOLS_INPUT_PROPERTY = "frozenlands.prelaunch.devToolsInput";
+    private static final String PRELAUNCH_DEVTOOLS_AVAILABILITY_PROPERTY = "frozenlands.prelaunch.devTools";
+    private static final String PRELAUNCH_DEVTOOLS_WINDOW_TYPE_PROPERTY = "frozenlands.prelaunch.devTools.windowType";
+    private static final String PRELAUNCH_DEVTOOLS_Z_ORDER_PROPERTY = "frozenlands.prelaunch.devTools.zOrder";
+    private static final String PRELAUNCH_DEVTOOLS_CLOSE_POLICY_PROPERTY = "frozenlands.prelaunch.devTools.closePolicy";
     private static final int[] SAMPLE_VALUES = {0, 2, 4, 8, 16};
     private static final String[] SAMPLE_LABELS = {"Off", "2x MSAA", "4x MSAA", "8x MSAA", "16x MSAA"};
 
@@ -82,7 +87,7 @@ final class HtmlPreLaunchSettingsDialog {
         private AppSettings show() {
             try {
                 String sourcePath = PRELAUNCH_RESOURCE_ROOT + "/prelaunch.html";
-                panel = new HtmlDomSwingPanel(readHtml(), "", sourcePath, PRELAUNCH_RESOURCE_ROOT);
+                panel = new HtmlDomSwingPanel(readHtml(), "", sourcePath, PRELAUNCH_RESOURCE_ROOT, windowOptions.htmlDomConfig());
                 panel.setPreferredSize(new Dimension(960, 640));
                 panel.setMinimumSize(new Dimension(860, 560));
                 panel.setSize(960, 640);
@@ -414,12 +419,12 @@ final class HtmlPreLaunchSettingsDialog {
         }
     }
 
-    private record LaunchWindowOptions(boolean modal) {
+    private record LaunchWindowOptions(boolean modal, HtmlDomConfig htmlDomConfig) {
         private static LaunchWindowOptions fromSystemProperties() {
             String mode = System.getProperty(PRELAUNCH_MODALITY_PROPERTY, "").trim().toLowerCase();
             String explicitModal = System.getProperty(PRELAUNCH_MODAL_PROPERTY, "").trim();
             boolean devToolsInput = Boolean.parseBoolean(System.getProperty(PRELAUNCH_DEVTOOLS_INPUT_PROPERTY, "false"));
-            return new LaunchWindowOptions(resolveModal(mode, explicitModal, devToolsInput));
+            return new LaunchWindowOptions(resolveModal(mode, explicitModal, devToolsInput), htmlDomConfig(devToolsInput));
         }
 
         private static boolean resolveModal(String mode, String explicitModal, boolean devToolsInput) {
@@ -434,6 +439,43 @@ final class HtmlPreLaunchSettingsDialog {
                 return Boolean.parseBoolean(explicitModal);
             }
             return !devToolsInput;
+        }
+
+        private static HtmlDomConfig htmlDomConfig(boolean devToolsInput) {
+            return HtmlDomConfig.defaults()
+                    .withAllowDevTools(enumProperty(
+                            PRELAUNCH_DEVTOOLS_AVAILABILITY_PROPERTY,
+                            devToolsInput ? HtmlDomConfig.DevToolsAvailability.ENABLED : HtmlDomConfig.DevToolsAvailability.ENABLED,
+                            HtmlDomConfig.DevToolsAvailability.class
+                    ))
+                    .withDevToolsWindowType(enumProperty(
+                            PRELAUNCH_DEVTOOLS_WINDOW_TYPE_PROPERTY,
+                            HtmlDomConfig.DevToolsWindowType.STANDALONE_FRAME,
+                            HtmlDomConfig.DevToolsWindowType.class
+                    ))
+                    .withDevToolsZOrder(enumProperty(
+                            PRELAUNCH_DEVTOOLS_Z_ORDER_PROPERTY,
+                            HtmlDomConfig.DevToolsZOrder.SAME_LEVEL,
+                            HtmlDomConfig.DevToolsZOrder.class
+                    ))
+                    .withDevToolsClosePolicy(enumProperty(
+                            PRELAUNCH_DEVTOOLS_CLOSE_POLICY_PROPERTY,
+                            HtmlDomConfig.DevToolsClosePolicy.CLOSE_WITH_HOST,
+                            HtmlDomConfig.DevToolsClosePolicy.class
+                    ));
+        }
+
+        private static <E extends Enum<E>> E enumProperty(String name, E fallback, Class<E> type) {
+            String raw = System.getProperty(name, "").trim();
+            if (raw.isBlank()) {
+                return fallback;
+            }
+            String normalized = raw.replace('-', '_').replace('.', '_').replace(' ', '_').toUpperCase();
+            try {
+                return Enum.valueOf(type, normalized);
+            } catch (IllegalArgumentException ignored) {
+                return fallback;
+            }
         }
     }
 

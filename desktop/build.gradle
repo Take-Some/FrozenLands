@@ -116,8 +116,10 @@ tasks.named('run', JavaExec) {
             'frozenlands.prelaunch.modality',
             'frozenlands.prelaunch.modal',
             'frozenlands.prelaunch.devToolsInput',
-            'htmldom.devtools.alwaysOnTop',
-            'htmldom.devtools.pushInspectedBehind'
+            'frozenlands.prelaunch.devTools',
+            'frozenlands.prelaunch.devTools.windowType',
+            'frozenlands.prelaunch.devTools.zOrder',
+            'frozenlands.prelaunch.devTools.closePolicy'
     ].each { propertyName ->
         def propertyValue = System.getProperty(propertyName)
         if (propertyValue != null && !propertyValue.isBlank()) {
