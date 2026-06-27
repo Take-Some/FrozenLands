@@ -7,6 +7,9 @@ import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
+import java.awt.EventQueue;
+import java.awt.SecondaryLoop;
+import java.awt.Toolkit;
 import java.awt.Dimension;
 import java.awt.DisplayMode;
 import java.awt.GraphicsDevice;
@@ -14,6 +17,8 @@ import java.awt.GraphicsEnvironment;
 import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -22,12 +27,17 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.TreeSet;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.prefs.BackingStoreException;
 
 final class HtmlPreLaunchSettingsDialog {
     private static final String PREFERENCES_KEY = "FrozenLands";
     private static final String PRELAUNCH_RESOURCE_ROOT = "org/takesome/frozenlands/engine/ui/prelaunch";
+    private static final String PRELAUNCH_MODALITY_PROPERTY = "frozenlands.prelaunch.modality";
+    private static final String PRELAUNCH_MODAL_PROPERTY = "frozenlands.prelaunch.modal";
+    private static final String PRELAUNCH_DEVTOOLS_INPUT_PROPERTY = "frozenlands.prelaunch.devToolsInput";
     private static final int[] SAMPLE_VALUES = {0, 2, 4, 8, 16};
     private static final String[] SAMPLE_LABELS = {"Off", "2x MSAA", "4x MSAA", "8x MSAA", "16x MSAA"};
 
@@ -44,10 +54,14 @@ final class HtmlPreLaunchSettingsDialog {
         private final AppSettings initialSettings;
         private final List<Resolution> resolutions;
         private final Resolution nativeResolution;
+        private final LaunchWindowOptions windowOptions;
         private final AtomicReference<AppSettings> result = new AtomicReference<>();
+        private final AtomicBoolean finished = new AtomicBoolean();
+        private final CountDownLatch completion = new CountDownLatch(1);
 
         private HtmlDomSwingPanel panel;
         private JDialog dialog;
+        private SecondaryLoop completionLoop;
         private Point windowDragOffset;
         private int resolutionIndex;
         private int sampleIndex;
@@ -61,6 +75,7 @@ final class HtmlPreLaunchSettingsDialog {
             this.initialSettings = Objects.requireNonNull(initialSettings, "initialSettings");
             this.nativeResolution = currentResolution();
             this.resolutions = availableResolutions(nativeResolution);
+            this.windowOptions = LaunchWindowOptions.fromSystemProperties();
             applyInitialSettings(initialSettings);
         }
 
@@ -76,9 +91,22 @@ final class HtmlPreLaunchSettingsDialog {
                 refresh();
                 panel.ensureLayout();
 
-                dialog = new JDialog((java.awt.Frame) null, "FrozenLands Launcher", true);
+                dialog = new JDialog((java.awt.Frame) null, "FrozenLands Launcher", windowOptions.modal());
+                dialog.setName("FrozenLands PreLaunch");
+                dialog.setModal(windowOptions.modal());
                 dialog.setUndecorated(true);
-                dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+                dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+                dialog.addWindowListener(new WindowAdapter() {
+                    @Override
+                    public void windowClosing(WindowEvent event) {
+                        cancel();
+                    }
+
+                    @Override
+                    public void windowClosed(WindowEvent event) {
+                        finish(null);
+                    }
+                });
                 dialog.setContentPane(panel);
                 installKeyboardShortcuts(dialog);
                 dialog.pack();
@@ -86,7 +114,7 @@ final class HtmlPreLaunchSettingsDialog {
                 dialog.setLocationRelativeTo(null);
                 SwingUtilities.invokeLater(panel::requestFocusInWindow);
                 dialog.setVisible(true);
-                return result.get();
+                return windowOptions.modal() ? result.get() : awaitResult();
             } catch (RuntimeException | IOException exception) {
                 throw new IllegalStateException("HTML pre-launch settings dialog failed", exception);
             }
@@ -270,10 +298,7 @@ final class HtmlPreLaunchSettingsDialog {
         }
 
         private void cancel() {
-            result.set(null);
-            if (dialog != null) {
-                dialog.dispose();
-            }
+            finish(null);
         }
 
         private void confirm() {
@@ -290,9 +315,39 @@ final class HtmlPreLaunchSettingsDialog {
                 settings.save(PREFERENCES_KEY);
             } catch (BackingStoreException ignored) {
             }
+            finish(settings);
+        }
+
+        private AppSettings awaitResult() {
+            if (SwingUtilities.isEventDispatchThread()) {
+                EventQueue queue = Toolkit.getDefaultToolkit().getSystemEventQueue();
+                completionLoop = queue.createSecondaryLoop();
+                if (completion.getCount() > 0) {
+                    completionLoop.enter();
+                }
+            } else {
+                try {
+                    completion.await();
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    finish(null);
+                }
+            }
+            return result.get();
+        }
+
+        private void finish(AppSettings settings) {
+            if (!finished.compareAndSet(false, true)) {
+                return;
+            }
             result.set(settings);
-            if (dialog != null) {
+            if (dialog != null && dialog.isDisplayable()) {
                 dialog.dispose();
+            }
+            completion.countDown();
+            SecondaryLoop loop = completionLoop;
+            if (loop != null) {
+                loop.exit();
             }
         }
 
@@ -356,6 +411,28 @@ final class HtmlPreLaunchSettingsDialog {
                 }
                 return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
             }
+        }
+    }
+
+    private record LaunchWindowOptions(boolean modal) {
+        private static LaunchWindowOptions fromSystemProperties() {
+            String mode = System.getProperty(PRELAUNCH_MODALITY_PROPERTY, "").trim().toLowerCase();
+            String explicitModal = System.getProperty(PRELAUNCH_MODAL_PROPERTY, "").trim();
+            boolean devToolsInput = Boolean.parseBoolean(System.getProperty(PRELAUNCH_DEVTOOLS_INPUT_PROPERTY, "false"));
+
+            if (!mode.isBlank()) {
+                return switch (mode) {
+                    case "modal", "application-modal", "application_modal" -> new LaunchWindowOptions(true);
+                    case "modeless", "nonmodal", "non-modal", "devtools", "dev-tools" -> new LaunchWindowOptions(false);
+                    default -> new LaunchWindowOptions(!devToolsInput);
+                };
+            }
+
+            if (!explicitModal.isBlank()) {
+                return new LaunchWindowOptions(Boolean.parseBoolean(explicitModal));
+            }
+
+            return new LaunchWindowOptions(!devToolsInput);
         }
     }
 

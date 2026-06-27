@@ -110,7 +110,13 @@ tasks.named('run', JavaExec) {
     if (project.hasProperty('ansiProbe')) {
         jvmArgs '-Dfrozenlands.ansi.probe=true'
     }
-    ['frozenlands.log.level', 'frozenlands.external.log.level'].each { propertyName ->
+    [
+            'frozenlands.log.level',
+            'frozenlands.external.log.level',
+            'frozenlands.prelaunch.modality',
+            'frozenlands.prelaunch.modal',
+            'frozenlands.prelaunch.devToolsInput'
+    ].each { propertyName ->
         def propertyValue = System.getProperty(propertyName)
         if (propertyValue != null && !propertyValue.isBlank()) {
             jvmArgs "-D${propertyName}=${propertyValue}"
