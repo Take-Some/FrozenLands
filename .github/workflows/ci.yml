@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SKY_SIMULATION_VERSION: '1.4.2'
+  SKY_SIMULATION_VERSION: '1.4.4'
 
 jobs:
   validate:
